@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<modDesc descVersion="104">
+    <author>Etrigo</author>
+    <version>1.0.0.0</version>
+
+    <title>
+        <en>Hand Throttle</en>
+        <de>Handgas</de>
+        <pt>Acelerador de Mão</pt>
+    </title>
+
+    <description>
+        <en><![CDATA[
+Hand throttle for tractors with a manual gearbox.
+
+Two modes:
+- % mode: fixes the throttle position, like the hand lever of an old tractor. In neutral the engine revs freely, in gear it is the same as pressing the pedal.
+- RPM mode: fixes the engine RPM (e.g. 1800). The throttle is adjusted automatically to hold it uphill and downhill, up to the engine's power limit. You only have to shift gears.
+
+The pedal always wins when pressed further. Braking suspends the hand throttle. Only works with manual gear shifting (not CVT/automatic).
+]]></en>
+        <de><![CDATA[
+Handgas für Traktoren mit Schaltgetriebe.
+
+Zwei Modi:
+- %-Modus: fixiert die Gaspedalstellung wie der Handgashebel eines alten Traktors.
+- Drehzahl-Modus: fixiert die Motordrehzahl (z. B. 1800). Das Gas wird automatisch nachgeregelt, bergauf und bergab, bis zur Leistungsgrenze des Motors.
+
+Nur bei manueller Schaltung (nicht CVT/Automatik).
+]]></de>
+        <pt><![CDATA[
+Acelerador de mão para tratores de caixa manual.
+
+Dois modos:
+- Modo %: fixa a posição do acelerador, como a alavanca de mão de um trator antigo. Em ponto morto acelera em seco, com mudança engatada é o mesmo que carregar no pedal.
+- Modo RPM: fixa as rotações do motor (ex.: 1800). O acelerador é ajustado automaticamente para as manter a subir e a descer, até ao limite de potência do motor. Só tens de mexer na caixa.
+
+O pedal ganha sempre que carregares mais. Travar suspende o acelerador de mão. Só funciona com passagem de caixa manual (não CVT/automática).
+]]></pt>
+    </description>
+
+    <iconFilename>icon_handThrottle.dds</iconFilename>
+    <multiplayer supported="true"/>
+
+    <extraSourceFiles>
+        <sourceFile filename="scripts/HandThrottleEvent.lua"/>
+        <sourceFile filename="scripts/RegisterHandThrottle.lua"/>
+    </extraSourceFiles>
+
+    <actions>
+        <action name="HT_TOGGLE_MODE" category="VEHICLE" ignoreComboMask="false"/>
+        <action name="HT_VALUE_UP" category="VEHICLE" ignoreComboMask="false"/>
+        <action name="HT_VALUE_DOWN" category="VEHICLE" ignoreComboMask="false"/>
+    </actions>
+
+    <inputBinding>
+        <actionBinding action="HT_TOGGLE_MODE">
+            <binding device="KB_MOUSE_DEFAULT" input="KEY_lctrl KEY_h" axisComponent="+" neutralInput="0" index="1"/>
+        </actionBinding>
+        <actionBinding action="HT_VALUE_UP">
+            <binding device="KB_MOUSE_DEFAULT" input="KEY_lctrl KEY_pageup" axisComponent="+" neutralInput="0" index="1"/>
+        </actionBinding>
+        <actionBinding action="HT_VALUE_DOWN">
+            <binding device="KB_MOUSE_DEFAULT" input="KEY_lctrl KEY_pagedown" axisComponent="+" neutralInput="0" index="1"/>
+        </actionBinding>
+    </inputBinding>
+
+    <l10n>
+        <text name="input_HT_TOGGLE_MODE">
+            <en>Hand throttle: change mode</en>
+            <de>Handgas: Modus wechseln</de>
+            <pt>Acelerador de mão: mudar modo</pt>
+        </text>
+        <text name="input_HT_VALUE_UP">
+            <en>Hand throttle: increase</en>
+            <de>Handgas: erhöhen</de>
+            <pt>Acelerador de mão: subir</pt>
+        </text>
+        <text name="input_HT_VALUE_DOWN">
+            <en>Hand throttle: decrease</en>
+            <de>Handgas: verringern</de>
+            <pt>Acelerador de mão: descer</pt>
+        </text>
+
+        <text name="ht_label">
+            <en>Hand throttle</en>
+            <de>Handgas</de>
+            <pt>Acel. mão</pt>
+        </text>
+        <text name="ht_mode_off">
+            <en>OFF</en>
+            <de>AUS</de>
+            <pt>OFF</pt>
+        </text>
+        <text name="ht_inactive">
+            <en>(inactive)</en>
+            <de>(inaktiv)</de>
+            <pt>(inativo)</pt>
+        </text>
+        <text name="ht_warning_manualOnly">
+            <en>Hand throttle is only available with manual gear shifting</en>
+            <de>Handgas ist nur bei manueller Schaltung verfügbar</de>
+            <pt>Acelerador de mão só disponível em caixa manual</pt>
+        </text>
+    </l10n>
+</modDesc>

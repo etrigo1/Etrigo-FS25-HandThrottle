@@ -12,8 +12,7 @@
 --------------------------------------------------------------------------------
 
 HandThrottle = {}
-HandThrottle.MOD_NAME = g_currentModName
-HandThrottle.SPEC_NAME = "handThrottle"
+HandThrottle.MOD_NAME = g_currentModName    -- reposto pelo RegisterHandThrottle.lua
 
 HandThrottle.MODE_OFF = 0
 HandThrottle.MODE_PERCENT = 1
@@ -76,6 +75,8 @@ end
 -- Ciclo de vida
 --------------------------------------------------------------------------------
 function HandThrottle:onLoad(savegame)
+    -- a spec é registada como "<modName>.handThrottle"; usamos uma tabela própria com nome simples
+    self.spec_handThrottle = {}
     local spec = self.spec_handThrottle
 
     spec.mode = HandThrottle.MODE_OFF

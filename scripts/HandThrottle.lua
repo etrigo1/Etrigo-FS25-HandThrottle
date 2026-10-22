@@ -30,10 +30,24 @@ HandThrottle.RPM_KP = 1.5               -- ganho proporcional
 HandThrottle.RPM_KI = 0.8               -- ganho integral (por segundo)
 HandThrottle.PEDAL_RATE = 1.5           -- variação máxima do pedal da mão (por segundo)
 
--- HUD (coordenadas normalizadas do ecrã, alinhado à direita)
-HandThrottle.HUD_POS_X = 0.985
-HandThrottle.HUD_POS_Y = 0.30
+-- HUD (coordenadas normalizadas do ecrã; x = borda direita do texto, y = base do texto)
+HandThrottle.HUD_DEFAULT_X = 0.985
+HandThrottle.HUD_DEFAULT_Y = 0.30
 HandThrottle.HUD_TEXT_SIZE = 0.016
+HandThrottle.HUD_BOX_PADDING = 0.004
+HandThrottle.SETTINGS_FILE = getUserProfileAppPath() .. "modSettings/Etrigo_HandThrottle.xml"
+
+-- estado do HUD: só local (por jogador), não vai para o savegame nem para a rede
+HandThrottle.hud = {
+    x = HandThrottle.HUD_DEFAULT_X,
+    y = HandThrottle.HUD_DEFAULT_Y,
+    isLoaded = false,
+    isPositioning = false,
+    isDragging = false,
+    dragOffsetX = 0,
+    dragOffsetY = 0,
+    textWidth = 0.1,
+}
 
 
 local function getText(key)
@@ -115,6 +129,11 @@ end
 -- onLeaveVehicle e onStopMotor correm no servidor e nos clientes, por isso não é preciso evento
 function HandThrottle:onLeaveVehicle(wasEntered)
     self:setHandThrottleState(HandThrottle.MODE_OFF, 0, 0, true)
+
+    -- só o jogador que estava neste veículo sai do modo posicionar
+    if wasEntered and HandThrottle.hud.isPositioning then
+        HandThrottle.setHudPositioning(false)
+    end
 end
 
 
@@ -262,6 +281,9 @@ function HandThrottle:onRegisterActionEvents(isActiveForInput, isActiveForInputI
         _, actionEventId = self:addActionEvent(spec.actionEvents, InputAction.HT_VALUE_DOWN, self, HandThrottle.actionEventChangeValue, false, true, true, true, -1)
         g_inputBinding:setActionEventTextPriority(actionEventId, GS_PRIO_LOW)
 
+        _, actionEventId = self:addActionEvent(spec.actionEvents, InputAction.HT_MOVE_HUD, self, HandThrottle.actionEventMoveHud, false, true, false, true, nil)
+        g_inputBinding:setActionEventTextPriority(actionEventId, GS_PRIO_VERY_LOW or GS_PRIO_LOW)
+
         HandThrottle.updateActionEvents(self)
     end
 end
@@ -360,22 +382,131 @@ end
 
 function HandThrottle:onDraw(isActiveForInput, isActiveForInputIgnoreSelection, isSelected)
     local spec = self.spec_handThrottle
-    if spec.mode == HandThrottle.MODE_OFF then
+    local hud = HandThrottle.hud
+    if spec.mode == HandThrottle.MODE_OFF and not hud.isPositioning then
         return
     end
 
+    HandThrottle.loadHudPosition()
+
     local text = string.format("%s: %s", getText("ht_label"), HandThrottle.getModeValueText(spec))
-    if not getCanApplyHandThrottle(self) then
+    if spec.mode ~= HandThrottle.MODE_OFF and not getCanApplyHandThrottle(self) then
         text = text .. " " .. getText("ht_inactive")
     end
 
-    local x = HandThrottle.HUD_POS_X - (g_safeFrameOffsetX or 0)
-    local y = HandThrottle.HUD_POS_Y
+    local size = HandThrottle.HUD_TEXT_SIZE
+    setTextBold(true)
+    hud.textWidth = getTextWidth(size, text)
+
+    if hud.isPositioning then
+        local bx, by, bw, bh = HandThrottle.getHudBox()
+        drawFilledRect(bx, by, bw, bh, 0, 0, 0, 0.5)
+    end
 
     setTextAlignment(RenderText.ALIGN_RIGHT)
-    setTextBold(true)
     setTextColor(1, 1, 1, 1)
-    renderText(x, y, HandThrottle.HUD_TEXT_SIZE, text)
+    renderText(hud.x, hud.y, size, text)
     setTextBold(false)
     setTextAlignment(RenderText.ALIGN_LEFT)
+end
+
+
+--------------------------------------------------------------------------------
+-- Mover o HUD (cliente, só local)
+--------------------------------------------------------------------------------
+
+-- caixa à volta do texto: x, y, largura, altura
+function HandThrottle.getHudBox()
+    local hud = HandThrottle.hud
+    local pad = HandThrottle.HUD_BOX_PADDING
+    local size = HandThrottle.HUD_TEXT_SIZE
+    return hud.x - hud.textWidth - pad, hud.y - pad, hud.textWidth + 2 * pad, size + 2 * pad
+end
+
+
+-- mantém o texto inteiro dentro do ecrã
+function HandThrottle.clampHudPosition()
+    local hud = HandThrottle.hud
+    hud.x = math.clamp(hud.x, hud.textWidth, 1)
+    hud.y = math.clamp(hud.y, 0, 1 - HandThrottle.HUD_TEXT_SIZE)
+end
+
+
+function HandThrottle.loadHudPosition()
+    local hud = HandThrottle.hud
+    if hud.isLoaded then
+        return
+    end
+    hud.isLoaded = true
+
+    if fileExists(HandThrottle.SETTINGS_FILE) then
+        local xmlFile = loadXMLFile("handThrottleSettings", HandThrottle.SETTINGS_FILE)
+        if xmlFile ~= nil and xmlFile ~= 0 then
+            hud.x = getXMLFloat(xmlFile, "handThrottle.hud#x") or hud.x
+            hud.y = getXMLFloat(xmlFile, "handThrottle.hud#y") or hud.y
+            delete(xmlFile)
+        end
+    end
+end
+
+
+function HandThrottle.saveHudPosition()
+    local hud = HandThrottle.hud
+    createFolder(getUserProfileAppPath() .. "modSettings/")
+
+    local xmlFile = createXMLFile("handThrottleSettings", HandThrottle.SETTINGS_FILE, "handThrottle")
+    if xmlFile ~= nil and xmlFile ~= 0 then
+        setXMLFloat(xmlFile, "handThrottle.hud#x", hud.x)
+        setXMLFloat(xmlFile, "handThrottle.hud#y", hud.y)
+        saveXMLFile(xmlFile)
+        delete(xmlFile)
+    end
+end
+
+
+function HandThrottle.setHudPositioning(isActive)
+    local hud = HandThrottle.hud
+    hud.isPositioning = isActive
+    hud.isDragging = false
+
+    g_inputBinding:setShowMouseCursor(isActive)
+    if not isActive then
+        HandThrottle.saveHudPosition()
+    end
+end
+
+
+function HandThrottle:actionEventMoveHud(actionName, inputValue, callbackState, isAnalog)
+    HandThrottle.loadHudPosition()
+    HandThrottle.setHudPositioning(not HandThrottle.hud.isPositioning)
+end
+
+
+-- chamado pelo mouseEvent do mod (RegisterHandThrottle.lua)
+-- arrastar com o botão esquerdo; botão direito em cima do HUD repõe a posição de origem
+function HandThrottle.onMouseEvent(posX, posY, isDown, isUp, button)
+    local hud = HandThrottle.hud
+    if not hud.isPositioning then
+        return
+    end
+
+    local bx, by, bw, bh = HandThrottle.getHudBox()
+    local isMouseOver = posX >= bx and posX <= bx + bw and posY >= by and posY <= by + bh
+
+    if isDown and button == Input.MOUSE_BUTTON_LEFT and isMouseOver then
+        hud.isDragging = true
+        hud.dragOffsetX = hud.x - posX
+        hud.dragOffsetY = hud.y - posY
+    elseif isUp and button == Input.MOUSE_BUTTON_LEFT then
+        hud.isDragging = false
+    elseif isDown and button == Input.MOUSE_BUTTON_RIGHT and isMouseOver then
+        hud.x = HandThrottle.HUD_DEFAULT_X
+        hud.y = HandThrottle.HUD_DEFAULT_Y
+    end
+
+    if hud.isDragging then
+        hud.x = posX + hud.dragOffsetX
+        hud.y = posY + hud.dragOffsetY
+        HandThrottle.clampHudPosition()
+    end
 end

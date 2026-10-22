@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="no" ?>
 <modDesc descVersion="104">
     <author>Etrigo</author>
-    <version>1.0.0.2</version>
+    <version>1.1.0.0</version>
 
     <title>
         <en>Hand Throttle</en>
@@ -51,6 +51,7 @@ O pedal ganha sempre que carregares mais. Travar suspende o acelerador de mão. 
         <action name="HT_TOGGLE_MODE" category="VEHICLE" ignoreComboMask="false"/>
         <action name="HT_VALUE_UP" category="VEHICLE" ignoreComboMask="false"/>
         <action name="HT_VALUE_DOWN" category="VEHICLE" ignoreComboMask="false"/>
+        <action name="HT_MOVE_HUD" category="VEHICLE" ignoreComboMask="false"/>
     </actions>
 
     <inputBinding>
@@ -62,6 +63,9 @@ O pedal ganha sempre que carregares mais. Travar suspende o acelerador de mão. 
         </actionBinding>
         <actionBinding action="HT_VALUE_DOWN">
             <binding device="KB_MOUSE_DEFAULT" input="KEY_lctrl KEY_pagedown" axisComponent="+" neutralInput="0" index="1"/>
+        </actionBinding>
+        <actionBinding action="HT_MOVE_HUD">
+            <binding device="KB_MOUSE_DEFAULT" input="KEY_rctrl KEY_KP_0" axisComponent="+" neutralInput="0" index="1"/>
         </actionBinding>
     </inputBinding>
 
@@ -80,6 +84,12 @@ O pedal ganha sempre que carregares mais. Travar suspende o acelerador de mão. 
             <en>Hand throttle: decrease</en>
             <de>Handgas: verringern</de>
             <pt>Acelerador de mão: descer</pt>
+        </text>
+
+        <text name="input_HT_MOVE_HUD">
+            <en>Hand throttle: move HUD</en>
+            <de>Handgas: HUD verschieben</de>
+            <pt>Acelerador de mão: mover HUD</pt>
         </text>
 
         <text name="ht_label">

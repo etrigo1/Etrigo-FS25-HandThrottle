@@ -41,3 +41,15 @@ local function addToVehicleTypes(typeManager)
 end
 
 TypeManager.validateTypes = Utils.prependedFunction(TypeManager.validateTypes, addToVehicleTypes)
+
+
+-- rato para mover o HUD (os veículos não recebem mouseEvent; um listener de mod recebe)
+HandThrottleMouseListener = {}
+
+function HandThrottleMouseListener:mouseEvent(posX, posY, isDown, isUp, button)
+    if HandThrottle ~= nil then
+        HandThrottle.onMouseEvent(posX, posY, isDown, isUp, button)
+    end
+end
+
+addModEventListener(HandThrottleMouseListener)

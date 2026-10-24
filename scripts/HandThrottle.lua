@@ -33,7 +33,7 @@ HandThrottle.PEDAL_RATE = 1.5           -- variação máxima do pedal da mão (
 -- HUD (coordenadas normalizadas do ecrã; x = borda direita do texto, y = base do texto)
 HandThrottle.HUD_DEFAULT_X = 0.985
 HandThrottle.HUD_DEFAULT_Y = 0.30
-HandThrottle.HUD_TEXT_SIZE = 0.016
+HandThrottle.HUD_TEXT_SIZE = 0.013
 HandThrottle.HUD_BOX_PADDING = 0.004
 HandThrottle.SETTINGS_FILE = getUserProfileAppPath() .. "modSettings/Etrigo_HandThrottle.xml"
 
@@ -98,6 +98,9 @@ function HandThrottle:onLoad(savegame)
     spec.percent = 0
     spec.rpm = 0
 
+    -- só no cliente que conduz: modo guardado pela tecla ligar/desligar
+    spec.lastMode = nil
+
     -- só no servidor
     spec.pedal = 0
     spec.integral = 0
@@ -128,6 +131,7 @@ end
 
 -- onLeaveVehicle e onStopMotor correm no servidor e nos clientes, por isso não é preciso evento
 function HandThrottle:onLeaveVehicle(wasEntered)
+    self.spec_handThrottle.lastMode = nil
     self:setHandThrottleState(HandThrottle.MODE_OFF, 0, 0, true)
 
     -- só o jogador que estava neste veículo sai do modo posicionar
@@ -138,6 +142,7 @@ end
 
 
 function HandThrottle:onStopMotor()
+    self.spec_handThrottle.lastMode = nil
     self:setHandThrottleState(HandThrottle.MODE_OFF, 0, 0, true)
 end
 
@@ -275,6 +280,9 @@ function HandThrottle:onRegisterActionEvents(isActiveForInput, isActiveForInputI
         local _, actionEventId = self:addActionEvent(spec.actionEvents, InputAction.HT_TOGGLE_MODE, self, HandThrottle.actionEventToggleMode, false, true, false, true, nil)
         g_inputBinding:setActionEventTextPriority(actionEventId, GS_PRIO_NORMAL)
 
+        _, actionEventId = self:addActionEvent(spec.actionEvents, InputAction.HT_TOGGLE_ON, self, HandThrottle.actionEventToggleOn, false, true, false, true, nil)
+        g_inputBinding:setActionEventTextPriority(actionEventId, GS_PRIO_NORMAL)
+
         _, actionEventId = self:addActionEvent(spec.actionEvents, InputAction.HT_VALUE_UP, self, HandThrottle.actionEventChangeValue, false, true, true, true, 1)
         g_inputBinding:setActionEventTextPriority(actionEventId, GS_PRIO_LOW)
 
@@ -313,6 +321,9 @@ end
 function HandThrottle:actionEventToggleMode(actionName, inputValue, callbackState, isAnalog)
     local spec = self.spec_handThrottle
 
+    -- a tecla de modo começa sempre do zero: esquece o que a tecla ligar/desligar guardou
+    spec.lastMode = nil
+
     if not self:getHandThrottleIsManualTransmission() then
         if spec.mode ~= HandThrottle.MODE_OFF then
             self:setHandThrottleState(HandThrottle.MODE_OFF, 0, 0)
@@ -330,6 +341,33 @@ function HandThrottle:actionEventToggleMode(actionName, inputValue, callbackStat
     else
         self:setHandThrottleState(HandThrottle.MODE_OFF, 0, 0)
     end
+end
+
+
+-- liga/desliga a mão sem perder o modo e o valor (ex.: nas cabeceiras)
+function HandThrottle:actionEventToggleOn(actionName, inputValue, callbackState, isAnalog)
+    local spec = self.spec_handThrottle
+
+    if spec.mode ~= HandThrottle.MODE_OFF then
+        spec.lastMode = spec.mode
+        self:setHandThrottleState(HandThrottle.MODE_OFF, spec.percent, spec.rpm)
+        return
+    end
+
+    if spec.lastMode == nil then
+        -- nada guardado: igual à tecla de modo (entra em % a 0 %)
+        HandThrottle.actionEventToggleMode(self, actionName, inputValue, callbackState, isAnalog)
+        return
+    end
+
+    if not self:getHandThrottleIsManualTransmission() then
+        g_currentMission:showBlinkingWarning(getText("ht_warning_manualOnly"), 2000)
+        return
+    end
+
+    local lastMode = spec.lastMode
+    spec.lastMode = nil
+    self:setHandThrottleState(lastMode, spec.percent, spec.rpm)
 end
 
 
@@ -383,7 +421,8 @@ end
 function HandThrottle:onDraw(isActiveForInput, isActiveForInputIgnoreSelection, isSelected)
     local spec = self.spec_handThrottle
     local hud = HandThrottle.hud
-    if spec.mode == HandThrottle.MODE_OFF and not hud.isPositioning then
+    -- em OFF só aparece se estiver em pausa (tecla ligar/desligar) ou a posicionar
+    if spec.mode == HandThrottle.MODE_OFF and spec.lastMode == nil and not hud.isPositioning then
         return
     end
 
@@ -391,7 +430,7 @@ function HandThrottle:onDraw(isActiveForInput, isActiveForInputIgnoreSelection, 
 
     local text = string.format("%s: %s", getText("ht_label"), HandThrottle.getModeValueText(spec))
     if spec.mode ~= HandThrottle.MODE_OFF and not getCanApplyHandThrottle(self) then
-        text = text .. " " .. getText("ht_inactive")
+        text = text .. " " .. getText("ht_mode_off")
     end
 
     local size = HandThrottle.HUD_TEXT_SIZE

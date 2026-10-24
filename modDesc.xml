@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="no" ?>
 <modDesc descVersion="104">
     <author>Etrigo</author>
-    <version>1.1.0.0</version>
+    <version>1.2.0.0</version>
 
     <title>
         <en>Hand Throttle</en>
@@ -49,6 +49,7 @@ O pedal ganha sempre que carregares mais. Travar suspende o acelerador de mão. 
 
     <actions>
         <action name="HT_TOGGLE_MODE" category="VEHICLE" ignoreComboMask="false"/>
+        <action name="HT_TOGGLE_ON" category="VEHICLE" ignoreComboMask="false"/>
         <action name="HT_VALUE_UP" category="VEHICLE" ignoreComboMask="false"/>
         <action name="HT_VALUE_DOWN" category="VEHICLE" ignoreComboMask="false"/>
         <action name="HT_MOVE_HUD" category="VEHICLE" ignoreComboMask="false"/>
@@ -57,6 +58,9 @@ O pedal ganha sempre que carregares mais. Travar suspende o acelerador de mão. 
     <inputBinding>
         <actionBinding action="HT_TOGGLE_MODE">
             <binding device="KB_MOUSE_DEFAULT" input="KEY_lctrl KEY_h" axisComponent="+" neutralInput="0" index="1"/>
+        </actionBinding>
+        <actionBinding action="HT_TOGGLE_ON">
+            <binding device="KB_MOUSE_DEFAULT" input="KEY_rctrl KEY_KP_period" axisComponent="+" neutralInput="0" index="1"/>
         </actionBinding>
         <actionBinding action="HT_VALUE_UP">
             <binding device="KB_MOUSE_DEFAULT" input="KEY_lctrl KEY_pageup" axisComponent="+" neutralInput="0" index="1"/>
@@ -74,6 +78,11 @@ O pedal ganha sempre que carregares mais. Travar suspende o acelerador de mão. 
             <en>Hand throttle: change mode</en>
             <de>Handgas: Modus wechseln</de>
             <pt>Acelerador de mão: mudar modo</pt>
+        </text>
+        <text name="input_HT_TOGGLE_ON">
+            <en>Hand throttle: on/off</en>
+            <de>Handgas: ein/aus</de>
+            <pt>Acelerador de mão: ligar/desligar</pt>
         </text>
         <text name="input_HT_VALUE_UP">
             <en>Hand throttle: increase</en>
@@ -101,11 +110,6 @@ O pedal ganha sempre que carregares mais. Travar suspende o acelerador de mão. 
             <en>OFF</en>
             <de>AUS</de>
             <pt>OFF</pt>
-        </text>
-        <text name="ht_inactive">
-            <en>(inactive)</en>
-            <de>(inaktiv)</de>
-            <pt>(inativo)</pt>
         </text>
         <text name="ht_warning_manualOnly">
             <en>Hand throttle is only available with manual gear shifting</en>

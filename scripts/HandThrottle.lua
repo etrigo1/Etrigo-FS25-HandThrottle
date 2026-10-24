@@ -98,8 +98,9 @@ function HandThrottle:onLoad(savegame)
     spec.percent = 0
     spec.rpm = 0
 
-    -- só no cliente que conduz: modo guardado pela tecla ligar/desligar
-    spec.lastMode = nil
+    -- modo guardado em pausa (tecla ligar/desligar, sair do trator, desligar o motor)
+    -- MODE_OFF = nada guardado. Só dura a sessão de jogo (não vai para o savegame).
+    spec.lastMode = HandThrottle.MODE_OFF
 
     -- só no servidor
     spec.pedal = 0
@@ -116,6 +117,7 @@ end
 function HandThrottle:onReadStream(streamId, connection)
     local spec = self.spec_handThrottle
     spec.mode = streamReadUIntN(streamId, 2)
+    spec.lastMode = streamReadUIntN(streamId, 2)
     spec.percent = streamReadUInt8(streamId)
     spec.rpm = streamReadUInt16(streamId)
 end
@@ -124,15 +126,16 @@ end
 function HandThrottle:onWriteStream(streamId, connection)
     local spec = self.spec_handThrottle
     streamWriteUIntN(streamId, spec.mode, 2)
+    streamWriteUIntN(streamId, spec.lastMode, 2)
     streamWriteUInt8(streamId, spec.percent)
     streamWriteUInt16(streamId, spec.rpm)
 end
 
 
--- onLeaveVehicle e onStopMotor correm no servidor e nos clientes, por isso não é preciso evento
+-- onLeaveVehicle e onStopMotor correm no servidor e nos clientes, por isso não é preciso evento.
+-- Em vez de esquecer, põe em pausa: ao voltar, a tecla ligar/desligar retoma o mesmo modo e valor.
 function HandThrottle:onLeaveVehicle(wasEntered)
-    self.spec_handThrottle.lastMode = nil
-    self:setHandThrottleState(HandThrottle.MODE_OFF, 0, 0, true)
+    HandThrottle.pauseHandThrottle(self, true)
 
     -- só o jogador que estava neste veículo sai do modo posicionar
     if wasEntered and HandThrottle.hud.isPositioning then
@@ -142,15 +145,16 @@ end
 
 
 function HandThrottle:onStopMotor()
-    self.spec_handThrottle.lastMode = nil
-    self:setHandThrottleState(HandThrottle.MODE_OFF, 0, 0, true)
+    HandThrottle.pauseHandThrottle(self, true)
 end
 
 
 --------------------------------------------------------------------------------
 -- Estado
 --------------------------------------------------------------------------------
-function HandThrottle:setHandThrottleState(mode, percent, rpm, noEventSend)
+
+-- lastMode: modo guardado em pausa (MODE_OFF ou nil = nada guardado)
+function HandThrottle:setHandThrottleState(mode, percent, rpm, lastMode, noEventSend)
     local spec = self.spec_handThrottle
 
     if mode ~= spec.mode then
@@ -158,6 +162,7 @@ function HandThrottle:setHandThrottleState(mode, percent, rpm, noEventSend)
     end
 
     spec.mode = mode
+    spec.lastMode = mode == HandThrottle.MODE_OFF and (lastMode or HandThrottle.MODE_OFF) or HandThrottle.MODE_OFF
     spec.percent = math.clamp(math.floor(percent + 0.5), 0, 100)
     spec.rpm = math.clamp(math.floor(rpm + 0.5), 0, 65535)
 
@@ -166,9 +171,18 @@ function HandThrottle:setHandThrottleState(mode, percent, rpm, noEventSend)
         spec.integral = 0
     end
 
-    HandThrottleEvent.sendEvent(self, spec.mode, spec.percent, spec.rpm, noEventSend)
+    HandThrottleEvent.sendEvent(self, spec.mode, spec.lastMode, spec.percent, spec.rpm, noEventSend)
 
     HandThrottle.updateActionEvents(self)
+end
+
+
+-- desliga a mão mas guarda o modo e o valor (não faz nada se já estiver em OFF)
+function HandThrottle.pauseHandThrottle(vehicle, noEventSend)
+    local spec = vehicle.spec_handThrottle
+    if spec.mode ~= HandThrottle.MODE_OFF then
+        vehicle:setHandThrottleState(HandThrottle.MODE_OFF, spec.percent, spec.rpm, spec.mode, noEventSend)
+    end
 end
 
 
@@ -321,11 +335,11 @@ end
 function HandThrottle:actionEventToggleMode(actionName, inputValue, callbackState, isAnalog)
     local spec = self.spec_handThrottle
 
-    -- a tecla de modo começa sempre do zero: esquece o que a tecla ligar/desligar guardou
-    spec.lastMode = nil
+    -- a tecla de modo começa sempre do zero: as chamadas abaixo não passam lastMode,
+    -- por isso o que estava guardado em pausa é esquecido
 
     if not self:getHandThrottleIsManualTransmission() then
-        if spec.mode ~= HandThrottle.MODE_OFF then
+        if spec.mode ~= HandThrottle.MODE_OFF or spec.lastMode ~= HandThrottle.MODE_OFF then
             self:setHandThrottleState(HandThrottle.MODE_OFF, 0, 0)
         end
         g_currentMission:showBlinkingWarning(getText("ht_warning_manualOnly"), 2000)
@@ -349,12 +363,11 @@ function HandThrottle:actionEventToggleOn(actionName, inputValue, callbackState,
     local spec = self.spec_handThrottle
 
     if spec.mode ~= HandThrottle.MODE_OFF then
-        spec.lastMode = spec.mode
-        self:setHandThrottleState(HandThrottle.MODE_OFF, spec.percent, spec.rpm)
+        HandThrottle.pauseHandThrottle(self)
         return
     end
 
-    if spec.lastMode == nil then
+    if spec.lastMode == HandThrottle.MODE_OFF then
         -- nada guardado: igual à tecla de modo (entra em % a 0 %)
         HandThrottle.actionEventToggleMode(self, actionName, inputValue, callbackState, isAnalog)
         return
@@ -365,9 +378,7 @@ function HandThrottle:actionEventToggleOn(actionName, inputValue, callbackState,
         return
     end
 
-    local lastMode = spec.lastMode
-    spec.lastMode = nil
-    self:setHandThrottleState(lastMode, spec.percent, spec.rpm)
+    self:setHandThrottleState(spec.lastMode, spec.percent, spec.rpm)
 end
 
 
@@ -422,7 +433,7 @@ function HandThrottle:onDraw(isActiveForInput, isActiveForInputIgnoreSelection, 
     local spec = self.spec_handThrottle
     local hud = HandThrottle.hud
     -- em OFF só aparece se estiver em pausa (tecla ligar/desligar) ou a posicionar
-    if spec.mode == HandThrottle.MODE_OFF and spec.lastMode == nil and not hud.isPositioning then
+    if spec.mode == HandThrottle.MODE_OFF and spec.lastMode == HandThrottle.MODE_OFF and not hud.isPositioning then
         return
     end
 

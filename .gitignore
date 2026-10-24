@@ -1,0 +1,6 @@
+# notas de desenvolvimento e testes locais (não vão para o GitHub)
+plano.md
+tests/
+
+# zips gerados
+*.zip

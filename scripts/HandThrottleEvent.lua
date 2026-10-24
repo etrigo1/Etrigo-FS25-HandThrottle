@@ -1,6 +1,7 @@
 --------------------------------------------------------------------------------
 -- HandThrottleEvent.lua
--- Sincroniza o estado do acelerador de mão (modo, modo em pausa, % e RPM alvo).
+-- Sincroniza o estado completo do acelerador de mão (ver HandThrottle.copyState):
+-- modo, modo em pausa, %, RPM, limite de RPM e velocidades (frente/trás).
 -- Cliente -> servidor -> restantes clientes.
 --------------------------------------------------------------------------------
 
@@ -15,33 +16,24 @@ function HandThrottleEvent.emptyNew()
 end
 
 
-function HandThrottleEvent.new(vehicle, mode, lastMode, percent, rpm)
+function HandThrottleEvent.new(vehicle, state)
     local self = HandThrottleEvent.emptyNew()
     self.vehicle = vehicle
-    self.mode = mode
-    self.lastMode = lastMode
-    self.percent = percent
-    self.rpm = rpm
+    self.state = state
     return self
 end
 
 
 function HandThrottleEvent:readStream(streamId, connection)
     self.vehicle = NetworkUtil.readNodeObject(streamId)
-    self.mode = streamReadUIntN(streamId, 2)
-    self.lastMode = streamReadUIntN(streamId, 2)
-    self.percent = streamReadUInt8(streamId)
-    self.rpm = streamReadUInt16(streamId)
+    self.state = HandThrottle.readStateFromStream(streamId)
     self:run(connection)
 end
 
 
 function HandThrottleEvent:writeStream(streamId, connection)
     NetworkUtil.writeNodeObject(streamId, self.vehicle)
-    streamWriteUIntN(streamId, self.mode, 2)
-    streamWriteUIntN(streamId, self.lastMode, 2)
-    streamWriteUInt8(streamId, self.percent)
-    streamWriteUInt16(streamId, self.rpm)
+    HandThrottle.writeStateToStream(streamId, self.state)
 end
 
 
@@ -52,17 +44,17 @@ function HandThrottleEvent:run(connection)
     end
 
     if self.vehicle ~= nil and self.vehicle:getIsSynchronized() and self.vehicle.setHandThrottleState ~= nil then
-        self.vehicle:setHandThrottleState(self.mode, self.percent, self.rpm, self.lastMode, true)
+        self.vehicle:setHandThrottleState(self.state, true)
     end
 end
 
 
-function HandThrottleEvent.sendEvent(vehicle, mode, lastMode, percent, rpm, noEventSend)
+function HandThrottleEvent.sendEvent(vehicle, state, noEventSend)
     if noEventSend == nil or noEventSend == false then
         if g_server ~= nil then
-            g_server:broadcastEvent(HandThrottleEvent.new(vehicle, mode, lastMode, percent, rpm), nil, nil, vehicle)
+            g_server:broadcastEvent(HandThrottleEvent.new(vehicle, state), nil, nil, vehicle)
         else
-            g_client:getServerConnection():sendEvent(HandThrottleEvent.new(vehicle, mode, lastMode, percent, rpm))
+            g_client:getServerConnection():sendEvent(HandThrottleEvent.new(vehicle, state))
         end
     end
 end

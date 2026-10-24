@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="no" ?>
 <modDesc descVersion="104">
     <author>Etrigo</author>
-    <version>1.3.0.0</version>
+    <version>1.4.0.0</version>
 
     <title>
         <en>Hand Throttle</en>
@@ -11,31 +11,47 @@
 
     <description>
         <en><![CDATA[
-Hand throttle for tractors with a manual gearbox.
+Hand throttle for every tractor.
 
-Two modes:
+Manual gearbox:
 - % mode: fixes the throttle position, like the hand lever of an old tractor. In neutral the engine revs freely, in gear it is the same as pressing the pedal.
 - RPM mode: fixes the engine RPM (e.g. 1800). The throttle is adjusted automatically to hold it uphill and downhill, up to the engine's power limit. You only have to shift gears.
 
-The pedal always wins when pressed further. Braking suspends the hand throttle. Only works with manual gear shifting (not CVT/automatic).
+CVT / automatic gearbox:
+- km/h mode: like the drive lever of modern CVT tractors. Switching it on keeps the current speed; increase/decrease change it. Separate memory for forward and reverse.
+
+All gearboxes:
+- RPM limit mode: full throttle is allowed, but the engine never goes above the set RPM.
+
+The pedal always wins when pressed further. On/off key that keeps the setting, per-tractor memory, movable HUD. Each mode can be switched off in modSettings/Etrigo_HandThrottle.xml.
 ]]></en>
         <de><![CDATA[
-Handgas für Traktoren mit Schaltgetriebe.
+Handgas für alle Traktoren.
 
-Zwei Modi:
+Schaltgetriebe:
 - %-Modus: fixiert die Gaspedalstellung wie der Handgashebel eines alten Traktors.
 - Drehzahl-Modus: fixiert die Motordrehzahl (z. B. 1800). Das Gas wird automatisch nachgeregelt, bergauf und bergab, bis zur Leistungsgrenze des Motors.
 
-Nur bei manueller Schaltung (nicht CVT/Automatik).
+Stufenlos / Automatik:
+- km/h-Modus: hält die aktuelle Geschwindigkeit, mit eigenem Speicher für vorwärts und rückwärts.
+
+Alle Getriebe:
+- Drehzahlbegrenzung: Vollgas erlaubt, aber der Motor überschreitet nie die eingestellte Drehzahl.
 ]]></de>
         <pt><![CDATA[
-Acelerador de mão para tratores de caixa manual.
+Acelerador de mão para todos os tratores.
 
-Dois modos:
+Caixa manual:
 - Modo %: fixa a posição do acelerador, como a alavanca de mão de um trator antigo. Em ponto morto acelera em seco, com mudança engatada é o mesmo que carregar no pedal.
 - Modo RPM: fixa as rotações do motor (ex.: 1800). O acelerador é ajustado automaticamente para as manter a subir e a descer, até ao limite de potência do motor. Só tens de mexer na caixa.
 
-O pedal ganha sempre que carregares mais. Travar suspende o acelerador de mão. Só funciona com passagem de caixa manual (não CVT/automática).
+CVT / caixa automática:
+- Modo km/h: como a alavanca de condução dos CVT modernos. Ao ligar, fica na velocidade atual; subir/descer mudam-na. Memória separada para a frente e para trás.
+
+Todas as caixas:
+- Modo limite de RPM: podes acelerar a fundo, mas o motor nunca passa das RPM definidas.
+
+O pedal ganha sempre que carregares mais. Tecla ligar/desligar que guarda o valor, memória por trator, HUD que se pode mover. Cada modo pode ser desligado em modSettings/Etrigo_HandThrottle.xml.
 ]]></pt>
     </description>
 
@@ -53,6 +69,7 @@ O pedal ganha sempre que carregares mais. Travar suspende o acelerador de mão. 
         <action name="HT_VALUE_UP" category="VEHICLE" ignoreComboMask="false"/>
         <action name="HT_VALUE_DOWN" category="VEHICLE" ignoreComboMask="false"/>
         <action name="HT_MOVE_HUD" category="VEHICLE" ignoreComboMask="false"/>
+        <action name="HT_AXIS" category="VEHICLE" axisType="FULL" ignoreComboMask="false"/>
     </actions>
 
     <inputBinding>
@@ -111,10 +128,40 @@ O pedal ganha sempre que carregares mais. Travar suspende o acelerador de mão. 
             <de>AUS</de>
             <pt>OFF</pt>
         </text>
-        <text name="ht_warning_manualOnly">
-            <en>Hand throttle is only available with manual gear shifting</en>
-            <de>Handgas ist nur bei manueller Schaltung verfügbar</de>
-            <pt>Acelerador de mão só disponível em caixa manual</pt>
+        <text name="input_HT_AXIS">
+            <en>Hand throttle: lever (axis)</en>
+            <de>Handgas: Hebel (Achse)</de>
+            <pt>Acelerador de mão: alavanca (eixo)</pt>
+        </text>
+        <text name="input_HT_AXIS_1">
+            <en>Hand throttle: lever up</en>
+            <de>Handgas: Hebel hoch</de>
+            <pt>Acelerador de mão: alavanca subir</pt>
+        </text>
+        <text name="input_HT_AXIS_2">
+            <en>Hand throttle: lever down</en>
+            <de>Handgas: Hebel runter</de>
+            <pt>Acelerador de mão: alavanca descer</pt>
+        </text>
+        <text name="ht_limit_prefix">
+            <en>max</en>
+            <de>max</de>
+            <pt>máx</pt>
+        </text>
+        <text name="ht_reverse">
+            <en>R</en>
+            <de>R</de>
+            <pt>R</pt>
+        </text>
+        <text name="ht_warning_noModes">
+            <en>Hand throttle: no mode available for this gearbox (see modSettings/Etrigo_HandThrottle.xml)</en>
+            <de>Handgas: kein Modus für dieses Getriebe verfügbar (siehe modSettings/Etrigo_HandThrottle.xml)</de>
+            <pt>Acelerador de mão: nenhum modo disponível para esta caixa (ver modSettings/Etrigo_HandThrottle.xml)</pt>
+        </text>
+        <text name="ht_warning_modeUnavailable">
+            <en>Hand throttle: this mode is not available with the current gearbox</en>
+            <de>Handgas: dieser Modus ist mit dem aktuellen Getriebe nicht verfügbar</de>
+            <pt>Acelerador de mão: este modo não está disponível com a caixa atual</pt>
         </text>
     </l10n>
 </modDesc>

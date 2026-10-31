@@ -3,8 +3,16 @@
 -- Especialização: acelerador de mão.
 --
 -- Modos (a tecla de modo percorre só os que servem para a caixa e estão ligados):
---   caixa manual          : OFF -> % -> RPM -> Limite -> OFF
---   CVT / caixa automática: OFF -> km/h -> Limite -> OFF
+--   caixa manual          : desligado -> % -> RPM -> Limite -> desligado
+--   CVT / caixa automática: desligado -> km/h -> Limite -> desligado
+--
+-- Estados (como o cruise control e o limitador de um carro, que partilham os botões):
+--   desligado (mode = OFF, lastMode = OFF): sem HUD; as teclas são do cruise control
+--                                          (jogo ou Vehicle Inspector).
+--   pausa     (mode = OFF, lastMode = modo): HUD com "OFF"; ligar/desligar retoma.
+--   ligado    (mode = modo)
+--   Em pausa ou ligado o cruise control fica bloqueado: as teclas dele são desativadas
+--   e, se ligar por outro caminho, é desligado logo.
 --
 --   %      : fixa a posição do acelerador (pedal mínimo).
 --   RPM    : fixa as RPM alvo; um controlador PI ajusta o pedal sozinho.
@@ -48,9 +56,13 @@ HandThrottle.PEDAL_RATE = 1.5           -- variação máxima do pedal da mão (
 -- Modo km/h
 HandThrottle.SPEED_START = 1            -- km/h ao ligar parado (e 1.ª vez em marcha-atrás)
 
--- Alavanca analógica (ação de eixo, sem tecla por defeito)
-HandThrottle.AXIS_STEPS_PER_SECOND = 5  -- passos por segundo com a alavanca toda empurrada
+-- Subir/descer ligado a um eixo analógico (a mesma ação aceita teclas e eixos)
+HandThrottle.AXIS_STEPS_PER_SECOND = 5  -- passos por segundo com o eixo todo empurrado
 HandThrottle.AXIS_DEADZONE = 0.1
+
+-- ações do cruise control desativadas enquanto o acelerador de mão estiver ligado ou em pausa
+HandThrottle.CRUISE_CONTROL_ACTIONS = {"TOGGLE_CRUISE_CONTROL", "AXIS_CRUISE_CONTROL"}
+HandThrottle.VEHICLE_INSPECTOR_ACTIONS = {"VI_SPEEDCONTROL_SPEED1", "VI_SPEEDCONTROL_SPEED2", "VI_SPEEDCONTROL_SPEED3", "VI_SPEEDCONTROL_AXIS_SETSPEED"}
 
 -- HUD (coordenadas normalizadas do ecrã; x = borda direita do texto, y = base do texto)
 HandThrottle.HUD_DEFAULT_X = 0.985
@@ -301,6 +313,9 @@ function HandThrottle:onLoad(savegame)
     spec.nextRepeatTime = {}
     spec.axisAccumulator = 0
     spec.axisLastTime = nil
+
+    -- ações do cruise control desativadas por nós: nome da ação -> id do evento
+    spec.blockedActionEvents = {}
 end
 
 
@@ -470,6 +485,12 @@ function HandThrottle.getIsModeAvailable(vehicle, mode)
 end
 
 
+-- ligado ou em pausa: o acelerador de mão manda nas teclas e o cruise control fica bloqueado
+function HandThrottle.getIsSystemOn(spec)
+    return spec.mode ~= HandThrottle.MODE_OFF or spec.lastMode ~= HandThrottle.MODE_OFF
+end
+
+
 local function getIsCruiseControlOn(vehicle)
     local drivableSpec = vehicle.spec_drivable
     return drivableSpec ~= nil and drivableSpec.cruiseControl.state ~= Drivable.CRUISECONTROL_STATE_OFF
@@ -481,10 +502,7 @@ local function getCanApplyHandThrottle(vehicle, mode)
         return false
     end
 
-    if mode == HandThrottle.MODE_RPM_LIMIT then
-        return true
-    end
-
+    -- o condutor desliga o cruise control logo (onUpdate); até lá não se atua
     if getIsCruiseControlOn(vehicle) then
         return false
     end
@@ -633,16 +651,29 @@ end
 
 
 --------------------------------------------------------------------------------
--- Vigia do condutor (cliente): travar e pé a passar o alvo, conforme as configurações
+-- Vigia do condutor (cliente): bloqueio do cruise control, travar e pé a passar o alvo
 --------------------------------------------------------------------------------
 function HandThrottle:onUpdate(dt, isActiveForInput, isActiveForInputIgnoreSelection, isSelected)
     local spec = self.spec_handThrottle
-    if not self.isClient or spec.mode == HandThrottle.MODE_OFF or not isActiveForInputIgnoreSelection then
+    if not self.isClient or not isActiveForInputIgnoreSelection then
         return
     end
 
     local drivableSpec = self.spec_drivable
     if drivableSpec == nil then
+        return
+    end
+
+    local isSystemOn = HandThrottle.getIsSystemOn(spec)
+    HandThrottle.updateCruiseControlActions(self, isSystemOn)
+
+    -- rede de segurança: o Vehicle Inspector (ou outro mod) pode ligar o cruise control
+    -- escrevendo o estado diretamente, sem passar pelas teclas
+    if isSystemOn and getIsCruiseControlOn(self) then
+        self:setCruiseControlState(Drivable.CRUISECONTROL_STATE_OFF)
+    end
+
+    if spec.mode == HandThrottle.MODE_OFF then
         return
     end
 
@@ -674,22 +705,17 @@ function HandThrottle:onRegisterActionEvents(isActiveForInput, isActiveForInputI
     self:clearActionEventsTable(spec.actionEvents)
 
     if isActiveForInputIgnoreSelection then
-        local _, actionEventId = self:addActionEvent(spec.actionEvents, InputAction.HT_TOGGLE_MODE, self, HandThrottle.actionEventToggleMode, false, true, false, true, nil)
+        local _, actionEventId = self:addActionEvent(spec.actionEvents, InputAction.ETHT_TOGGLE_MODE, self, HandThrottle.actionEventToggleMode, false, true, false, true, nil)
         g_inputBinding:setActionEventTextPriority(actionEventId, GS_PRIO_NORMAL)
 
-        _, actionEventId = self:addActionEvent(spec.actionEvents, InputAction.HT_TOGGLE_ON, self, HandThrottle.actionEventToggleOn, false, true, false, true, nil)
+        _, actionEventId = self:addActionEvent(spec.actionEvents, InputAction.ETHT_TOGGLE_ON, self, HandThrottle.actionEventToggleOn, false, true, false, true, nil)
         g_inputBinding:setActionEventTextPriority(actionEventId, GS_PRIO_NORMAL)
 
-        _, actionEventId = self:addActionEvent(spec.actionEvents, InputAction.HT_VALUE_UP, self, HandThrottle.actionEventChangeValue, false, true, true, true, 1)
+        -- subir/descer: uma só ação de eixo, para teclas, botões e eixos analógicos
+        _, actionEventId = self:addActionEvent(spec.actionEvents, InputAction.ETHT_VALUE, self, HandThrottle.actionEventValue, false, false, true, true, nil)
         g_inputBinding:setActionEventTextPriority(actionEventId, GS_PRIO_LOW)
 
-        _, actionEventId = self:addActionEvent(spec.actionEvents, InputAction.HT_VALUE_DOWN, self, HandThrottle.actionEventChangeValue, false, true, true, true, -1)
-        g_inputBinding:setActionEventTextPriority(actionEventId, GS_PRIO_LOW)
-
-        _, actionEventId = self:addActionEvent(spec.actionEvents, InputAction.HT_AXIS, self, HandThrottle.actionEventAxis, false, false, true, true, nil)
-        g_inputBinding:setActionEventTextVisibility(actionEventId, false)
-
-        _, actionEventId = self:addActionEvent(spec.actionEvents, InputAction.HT_MOVE_HUD, self, HandThrottle.actionEventMoveHud, false, true, false, true, nil)
+        _, actionEventId = self:addActionEvent(spec.actionEvents, InputAction.ETHT_MOVE_HUD, self, HandThrottle.actionEventMoveHud, false, true, false, true, nil)
         g_inputBinding:setActionEventTextPriority(actionEventId, GS_PRIO_VERY_LOW or GS_PRIO_LOW)
 
         HandThrottle.updateActionEvents(self)
@@ -703,17 +729,63 @@ function HandThrottle.updateActionEvents(vehicle)
         return
     end
 
-    local toggleEvent = spec.actionEvents[InputAction.HT_TOGGLE_MODE]
+    local toggleEvent = spec.actionEvents[InputAction.ETHT_TOGGLE_MODE]
     if toggleEvent ~= nil then
         g_inputBinding:setActionEventText(toggleEvent.actionEventId, string.format("%s: %s", getText("ht_label"), HandThrottle.getModeValueText(vehicle, spec)))
     end
 
-    local isOn = spec.mode ~= HandThrottle.MODE_OFF
-    for _, actionName in ipairs({InputAction.HT_VALUE_UP, InputAction.HT_VALUE_DOWN}) do
+    -- com o sistema desligado só a tecla de modo (e mover HUD) fica ativa:
+    -- as teclas partilhadas com o cruise control são dele
+    local activeStates = {
+        [InputAction.ETHT_TOGGLE_ON] = HandThrottle.getIsSystemOn(spec),
+        [InputAction.ETHT_VALUE] = spec.mode ~= HandThrottle.MODE_OFF,
+    }
+    for actionName, isActive in pairs(activeStates) do
         local actionEvent = spec.actionEvents[actionName]
         if actionEvent ~= nil then
-            g_inputBinding:setActionEventActive(actionEvent.actionEventId, isOn)
+            g_inputBinding:setActionEventActive(actionEvent.actionEventId, isActive)
         end
+    end
+end
+
+
+-- desativa (ou volta a ativar) as ações de uma tabela de eventos de outra especialização.
+-- Só se volta a ativar o que fomos nós a desativar, e só se chama o jogo quando o estado muda.
+local function setForeignActionsActive(spec, actionEvents, actionNames, isActive)
+    if actionEvents == nil then
+        return
+    end
+
+    for _, actionName in ipairs(actionNames) do
+        local actionEvent = actionEvents[actionName]
+        local actionEventId = actionEvent ~= nil and actionEvent.actionEventId or nil
+        local blockedId = spec.blockedActionEvents[actionName]
+
+        if actionEventId == nil then
+            spec.blockedActionEvents[actionName] = nil
+        elseif not isActive and blockedId ~= actionEventId then
+            g_inputBinding:setActionEventActive(actionEventId, false)
+            spec.blockedActionEvents[actionName] = actionEventId
+        elseif isActive and blockedId == actionEventId then
+            g_inputBinding:setActionEventActive(actionEventId, true)
+            spec.blockedActionEvents[actionName] = nil
+        end
+    end
+end
+
+
+-- teclas do cruise control do jogo e do Vehicle Inspector (se estiver instalado).
+-- Corre em cada frame do condutor porque o jogo volta a registar as ações em várias situações
+-- (o id muda e a ação nova vem ativa).
+function HandThrottle.updateCruiseControlActions(vehicle, isBlocked)
+    local spec = vehicle.spec_handThrottle
+
+    if vehicle.spec_drivable ~= nil then
+        setForeignActionsActive(spec, vehicle.spec_drivable.actionEvents, HandThrottle.CRUISE_CONTROL_ACTIONS, not isBlocked)
+    end
+
+    if vehicle.speedControl ~= nil then
+        setForeignActionsActive(spec, vehicle.speedControl.actionEvents, HandThrottle.VEHICLE_INSPECTOR_ACTIONS, not isBlocked)
     end
 end
 
@@ -745,11 +817,6 @@ function HandThrottle.prepareSpeedState(vehicle, state)
             state.speedBackward = HandThrottle.SPEED_START
         end
     end
-
-    -- o cruise control do jogo e o modo km/h não trabalham ao mesmo tempo
-    if getIsCruiseControlOn(vehicle) then
-        vehicle:setCruiseControlState(Drivable.CRUISECONTROL_STATE_OFF)
-    end
 end
 
 
@@ -776,6 +843,11 @@ function HandThrottle.activateMode(vehicle, mode)
         HandThrottle.prepareSpeedState(vehicle, state)
     end
 
+    -- o acelerador de mão e o cruise control nunca ficam ligados ao mesmo tempo
+    if getIsCruiseControlOn(vehicle) then
+        vehicle:setCruiseControlState(Drivable.CRUISECONTROL_STATE_OFF)
+    end
+
     vehicle:setHandThrottleState(state)
 end
 
@@ -799,11 +871,13 @@ function HandThrottle:actionEventToggleMode(actionName, inputValue, callbackStat
         return
     end
 
+    -- em pausa continua o ciclo a partir do modo guardado (o último leva ao sistema desligado)
+    local currentMode = spec.mode ~= HandThrottle.MODE_OFF and spec.mode or spec.lastMode
     local nextMode = available[1]
-    if spec.mode ~= HandThrottle.MODE_OFF then
+    if currentMode ~= HandThrottle.MODE_OFF then
         local index = nil
         for i, mode in ipairs(available) do
-            if mode == spec.mode then
+            if mode == currentMode then
                 index = i
             end
         end
@@ -829,8 +903,7 @@ function HandThrottle:actionEventToggleOn(actionName, inputValue, callbackState,
     end
 
     if spec.lastMode == HandThrottle.MODE_OFF then
-        -- nada guardado: igual à tecla de modo
-        HandThrottle.actionEventToggleMode(self, actionName, inputValue, callbackState, isAnalog)
+        -- sistema desligado: a tecla é do cruise control (a ação já está inativa, isto é só proteção)
         return
     end
 
@@ -882,33 +955,45 @@ function HandThrottle.changeValue(vehicle, direction)
 end
 
 
-function HandThrottle:actionEventChangeValue(actionName, inputValue, direction, isAnalog)
-    local spec = self.spec_handThrottle
-    if spec.mode == HandThrottle.MODE_OFF or inputValue <= 0 then
+-- subir/descer: teclas e botões vão passo a passo, os eixos analógicos mudam de forma contínua
+function HandThrottle:actionEventValue(actionName, inputValue, callbackState, isAnalog)
+    if isAnalog then
+        HandThrottle.updateValueAxis(self, inputValue)
+    else
+        HandThrottle.updateValueButton(self, inputValue)
+    end
+end
+
+
+-- tecla ou botão: o primeiro toque muda logo; carregada, repete depois do tempo configurado
+function HandThrottle.updateValueButton(vehicle, inputValue)
+    local spec = vehicle.spec_handThrottle
+    local direction = inputValue > 0 and 1 or (inputValue < 0 and -1 or 0)
+    if spec.mode == HandThrottle.MODE_OFF or direction == 0 then
         return
     end
 
-    -- primeiro toque muda logo; com a tecla carregada repete depois do tempo configurado
+    -- uma falha de mais de 150 ms entre chamadas = tecla largada e carregada de novo
     local general = HandThrottle.getConfig().general
-    local lastTime = spec.lastInputTime[actionName]
-    spec.lastInputTime[actionName] = g_time
+    local lastTime = spec.lastInputTime[direction]
+    spec.lastInputTime[direction] = g_time
 
     if lastTime == nil or g_time - lastTime > 150 then
-        spec.nextRepeatTime[actionName] = g_time + general.keyRepeatDelay
-    elseif g_time >= spec.nextRepeatTime[actionName] then
-        spec.nextRepeatTime[actionName] = g_time + general.keyRepeatInterval
+        spec.nextRepeatTime[direction] = g_time + general.keyRepeatDelay
+    elseif g_time >= spec.nextRepeatTime[direction] then
+        spec.nextRepeatTime[direction] = g_time + general.keyRepeatInterval
     else
         return
     end
 
-    HandThrottle.changeValue(self, direction)
+    HandThrottle.changeValue(vehicle, direction)
 end
 
 
--- alavanca analógica: quanto mais empurrada, mais depressa muda; no centro mantém.
+-- eixo analógico: quanto mais empurrado, mais depressa muda; no centro mantém.
 -- Junta as frações e só muda (e só envia evento) a cada passo inteiro.
-function HandThrottle:actionEventAxis(actionName, inputValue, callbackState, isAnalog)
-    local spec = self.spec_handThrottle
+function HandThrottle.updateValueAxis(vehicle, inputValue)
+    local spec = vehicle.spec_handThrottle
     local lastTime = spec.axisLastTime
     spec.axisLastTime = g_time
 
@@ -922,11 +1007,11 @@ function HandThrottle:actionEventAxis(actionName, inputValue, callbackState, isA
 
     while spec.axisAccumulator >= 1 do
         spec.axisAccumulator = spec.axisAccumulator - 1
-        HandThrottle.changeValue(self, 1)
+        HandThrottle.changeValue(vehicle, 1)
     end
     while spec.axisAccumulator <= -1 do
         spec.axisAccumulator = spec.axisAccumulator + 1
-        HandThrottle.changeValue(self, -1)
+        HandThrottle.changeValue(vehicle, -1)
     end
 end
 

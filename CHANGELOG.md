@@ -2,6 +2,14 @@
 
 The versions before 1.3.0.0 were developed and tested locally before the repository existed. Their commits and tags were **reconstructed** from the development history: every change was replayed in order from the very first version, and the result matches the 1.3.0.0 files byte for byte. Only 1.3.0.0 and later have a downloadable release; 1.0.0.0 and 1.0.0.1 do not work in game (see below).
 
+## 1.5.0.0 — 2026-10-31
+- **Hand throttle or cruise control, never both** (like the cruise control and speed limiter of a car). New "system off" state (no HUD) where the cruise control works normally; with a mode on or paused, the cruise control is blocked: its keys are disabled and it is switched off if anything turns it on. Works with the game's cruise control and with Vehicle Inspector. The same buttons can now be bound to both.
+- The mode key is the selector: system off → modes → system off. While paused it continues the cycle from the paused mode.
+- On/off does nothing while the system is off (that button belongs to the cruise control).
+- The RPM limit mode follows the same rule (it no longer runs together with the cruise control).
+- **Increase/decrease merged into one action** that accepts keys, buttons and analog axes. The separate "lever" action is gone.
+- Action names changed (`HT_*` → `ETHT_*`, to avoid clashing with another mod): **key bindings must be set again** (the defaults come back automatically).
+
 ## 1.4.0.0 — 2026-10-24
 - New **km/h mode** for CVT / automatic gearboxes: keeps the current speed when switched on (1 km/h when standing still), 1 km/h per step, separate forward/reverse memory, the pedal wins and pauses the mode 5 km/h above the target, braking pauses it. Does not touch the game's cruise control speed.
 - New **RPM limit mode** for every gearbox: full throttle allowed, but the engine never goes above the set RPM. Starts at the engine's maximum RPM.

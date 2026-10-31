@@ -10,8 +10,8 @@ A real hand throttle for every tractor. With a manual gearbox, set the throttle 
 ## 🌟 Modes
 
 The mode key only cycles through the modes that fit the tractor's gearbox (and are enabled in the settings):
-- **Manual gearbox:** OFF → % → RPM → Limit → OFF
-- **CVT / automatic gearbox:** OFF → km/h → Limit → OFF
+- **Manual gearbox:** system off → % → RPM → Limit → system off
+- **CVT / automatic gearbox:** system off → km/h → Limit → system off
 
 | Mode | Gearboxes | What it does |
 |---|---|---|
@@ -23,7 +23,19 @@ The mode key only cycles through the modes that fit the tractor's gearbox (and a
 ### Driving rules
 - **The pedal always wins**: press it further and your foot counts. In km/h mode, going **5 km/h** above the target with the pedal pauses the mode.
 - **Braking**: in %, RPM and Limit modes it only suspends the hand throttle while braking; in km/h mode it pauses the mode. Configurable per mode.
-- **Game cruise control on** → %, RPM and km/h modes stay out of the way (Limit keeps working).
+
+### Hand throttle or cruise control, never both
+Like the cruise control and speed limiter of a car, which share the same buttons:
+
+| State | HUD | Cruise control |
+|---|---|---|
+| **System off** | hidden | works normally |
+| **Paused** | `… OFF` | blocked |
+| **Mode on** | shown | blocked |
+
+- Switching a mode on turns the cruise control off. While the hand throttle is on or paused, the cruise control keys are disabled and, if something else switches it on, it is switched off at once.
+- So you can **bind the same buttons** (on/off, increase, decrease) to the cruise control and to the hand throttle: the mode key decides which one they control. Only the mode key must stay on a button of its own.
+- Works with the game's cruise control and with **Vehicle Inspector**.
 
 ### On/off without losing the setting
 - The **on/off** key pauses and keeps the mode and value (handy at the headland). Press it again to resume: %, RPM and Limit come back to the same value; km/h mode resumes at **your current speed**.
@@ -43,7 +55,8 @@ The mode key only cycles through the modes that fit the tractor's gearbox (and a
 | Increase (5 % / 50 RPM / 1 km/h / 50 RPM) | `Left Ctrl + Page Up` |
 | Decrease | `Left Ctrl + Page Down` |
 | Move HUD | `Right Ctrl + Numpad 0` |
-| Lever (analog axis) | *unbound* — push further = changes faster, centre = hold |
+
+Increase/decrease accept keys, buttons **or an analog axis**: with an axis, push further = changes faster, centre = hold.
 
 > ⚠️ Bind the mode and on/off actions to **buttons**, not to an analog axis. An axis crossing its centre triggers them repeatedly.
 

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="no" ?>
 <modDesc descVersion="104">
     <author>Etrigo</author>
-    <version>1.4.0.0</version>
+    <version>1.5.0.0</version>
 
     <title>
         <en>Hand Throttle</en>
@@ -23,7 +23,9 @@ CVT / automatic gearbox:
 All gearboxes:
 - RPM limit mode: full throttle is allowed, but the engine never goes above the set RPM.
 
-The pedal always wins when pressed further. On/off key that keeps the setting, per-tractor memory, movable HUD. Each mode can be switched off in modSettings/Etrigo_HandThrottle.xml.
+Hand throttle and cruise control never work together, like the cruise control and speed limiter of a car. With the system switched off (no HUD) the cruise control works normally; with a mode on or paused, the cruise control is blocked. So the same buttons can be bound to both: the mode key chooses which one they control. Works with the game's cruise control and with Vehicle Inspector.
+
+The pedal always wins when pressed further. On/off key that keeps the setting, per-tractor memory, movable HUD. Increase/decrease accept keys, buttons or an analog axis. Each mode can be switched off in modSettings/Etrigo_HandThrottle.xml.
 ]]></en>
         <de><![CDATA[
 Handgas für alle Traktoren.
@@ -37,6 +39,8 @@ Stufenlos / Automatik:
 
 Alle Getriebe:
 - Drehzahlbegrenzung: Vollgas erlaubt, aber der Motor überschreitet nie die eingestellte Drehzahl.
+
+Handgas und Tempomat sind nie gleichzeitig aktiv. Ist das System ausgeschaltet (kein HUD), funktioniert der Tempomat normal; sonst ist er gesperrt. So können dieselben Tasten für beide belegt werden.
 ]]></de>
         <pt><![CDATA[
 Acelerador de mão para todos os tratores.
@@ -51,7 +55,9 @@ CVT / caixa automática:
 Todas as caixas:
 - Modo limite de RPM: podes acelerar a fundo, mas o motor nunca passa das RPM definidas.
 
-O pedal ganha sempre que carregares mais. Tecla ligar/desligar que guarda o valor, memória por trator, HUD que se pode mover. Cada modo pode ser desligado em modSettings/Etrigo_HandThrottle.xml.
+O acelerador de mão e o cruise control nunca trabalham ao mesmo tempo, como o cruise control e o limitador de velocidade de um carro. Com o sistema desligado (sem HUD) o cruise control funciona normalmente; com um modo ligado ou em pausa, o cruise control fica bloqueado. Assim podes pôr os mesmos botões nos dois: a tecla de modo escolhe quem eles controlam. Funciona com o cruise control do jogo e com o Vehicle Inspector.
+
+O pedal ganha sempre que carregares mais. Tecla ligar/desligar que guarda o valor, memória por trator, HUD que se pode mover. Subir/descer aceitam teclas, botões ou um eixo analógico. Cada modo pode ser desligado em modSettings/Etrigo_HandThrottle.xml.
 ]]></pt>
     </description>
 
@@ -64,55 +70,56 @@ O pedal ganha sempre que carregares mais. Tecla ligar/desligar que guarda o valo
     </extraSourceFiles>
 
     <actions>
-        <action name="HT_TOGGLE_MODE" category="VEHICLE" ignoreComboMask="false"/>
-        <action name="HT_TOGGLE_ON" category="VEHICLE" ignoreComboMask="false"/>
-        <action name="HT_VALUE_UP" category="VEHICLE" ignoreComboMask="false"/>
-        <action name="HT_VALUE_DOWN" category="VEHICLE" ignoreComboMask="false"/>
-        <action name="HT_MOVE_HUD" category="VEHICLE" ignoreComboMask="false"/>
-        <action name="HT_AXIS" category="VEHICLE" axisType="FULL" ignoreComboMask="false"/>
+        <action name="ETHT_TOGGLE_MODE" category="VEHICLE" ignoreComboMask="false"/>
+        <action name="ETHT_TOGGLE_ON" category="VEHICLE" ignoreComboMask="false"/>
+        <action name="ETHT_VALUE" category="VEHICLE" axisType="FULL" ignoreComboMask="false"/>
+        <action name="ETHT_MOVE_HUD" category="VEHICLE" ignoreComboMask="false"/>
     </actions>
 
     <inputBinding>
-        <actionBinding action="HT_TOGGLE_MODE">
+        <actionBinding action="ETHT_TOGGLE_MODE">
             <binding device="KB_MOUSE_DEFAULT" input="KEY_lctrl KEY_h" axisComponent="+" neutralInput="0" index="1"/>
         </actionBinding>
-        <actionBinding action="HT_TOGGLE_ON">
+        <actionBinding action="ETHT_TOGGLE_ON">
             <binding device="KB_MOUSE_DEFAULT" input="KEY_rctrl KEY_KP_period" axisComponent="+" neutralInput="0" index="1"/>
         </actionBinding>
-        <actionBinding action="HT_VALUE_UP">
+        <actionBinding action="ETHT_VALUE">
             <binding device="KB_MOUSE_DEFAULT" input="KEY_lctrl KEY_pageup" axisComponent="+" neutralInput="0" index="1"/>
+            <binding device="KB_MOUSE_DEFAULT" input="KEY_lctrl KEY_pagedown" axisComponent="-" neutralInput="0" index="1"/>
         </actionBinding>
-        <actionBinding action="HT_VALUE_DOWN">
-            <binding device="KB_MOUSE_DEFAULT" input="KEY_lctrl KEY_pagedown" axisComponent="+" neutralInput="0" index="1"/>
-        </actionBinding>
-        <actionBinding action="HT_MOVE_HUD">
+        <actionBinding action="ETHT_MOVE_HUD">
             <binding device="KB_MOUSE_DEFAULT" input="KEY_rctrl KEY_KP_0" axisComponent="+" neutralInput="0" index="1"/>
         </actionBinding>
     </inputBinding>
 
     <l10n>
-        <text name="input_HT_TOGGLE_MODE">
+        <text name="input_ETHT_TOGGLE_MODE">
             <en>Hand throttle: change mode</en>
             <de>Handgas: Modus wechseln</de>
             <pt>Acelerador de mão: mudar modo</pt>
         </text>
-        <text name="input_HT_TOGGLE_ON">
+        <text name="input_ETHT_TOGGLE_ON">
             <en>Hand throttle: on/off</en>
             <de>Handgas: ein/aus</de>
             <pt>Acelerador de mão: ligar/desligar</pt>
         </text>
-        <text name="input_HT_VALUE_UP">
+        <text name="input_ETHT_VALUE">
+            <en>Hand throttle: increase/decrease</en>
+            <de>Handgas: erhöhen/verringern</de>
+            <pt>Acelerador de mão: subir/descer</pt>
+        </text>
+        <text name="input_ETHT_VALUE_1">
             <en>Hand throttle: increase</en>
             <de>Handgas: erhöhen</de>
             <pt>Acelerador de mão: subir</pt>
         </text>
-        <text name="input_HT_VALUE_DOWN">
+        <text name="input_ETHT_VALUE_2">
             <en>Hand throttle: decrease</en>
             <de>Handgas: verringern</de>
             <pt>Acelerador de mão: descer</pt>
         </text>
 
-        <text name="input_HT_MOVE_HUD">
+        <text name="input_ETHT_MOVE_HUD">
             <en>Hand throttle: move HUD</en>
             <de>Handgas: HUD verschieben</de>
             <pt>Acelerador de mão: mover HUD</pt>
@@ -127,21 +134,6 @@ O pedal ganha sempre que carregares mais. Tecla ligar/desligar que guarda o valo
             <en>OFF</en>
             <de>AUS</de>
             <pt>OFF</pt>
-        </text>
-        <text name="input_HT_AXIS">
-            <en>Hand throttle: lever (axis)</en>
-            <de>Handgas: Hebel (Achse)</de>
-            <pt>Acelerador de mão: alavanca (eixo)</pt>
-        </text>
-        <text name="input_HT_AXIS_1">
-            <en>Hand throttle: lever up</en>
-            <de>Handgas: Hebel hoch</de>
-            <pt>Acelerador de mão: alavanca subir</pt>
-        </text>
-        <text name="input_HT_AXIS_2">
-            <en>Hand throttle: lever down</en>
-            <de>Handgas: Hebel runter</de>
-            <pt>Acelerador de mão: alavanca descer</pt>
         </text>
         <text name="ht_limit_prefix">
             <en>max</en>

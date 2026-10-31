@@ -10,8 +10,8 @@ Um acelerador de mão a sério para todos os tratores. Na caixa manual fixas o a
 ## 🌟 Modos
 
 A tecla de modo só percorre os modos que servem para a caixa do trator (e que estão ligados nas configurações):
-- **Caixa manual:** OFF → % → RPM → Limite → OFF
-- **CVT / caixa automática:** OFF → km/h → Limite → OFF
+- **Caixa manual:** sistema desligado → % → RPM → Limite → sistema desligado
+- **CVT / caixa automática:** sistema desligado → km/h → Limite → sistema desligado
 
 | Modo | Caixas | O que faz |
 |---|---|---|
@@ -23,7 +23,19 @@ A tecla de modo só percorre os modos que servem para a caixa do trator (e que e
 ### Regras de condução
 - **O pedal ganha sempre**: se carregares mais do que o acelerador de mão, conta o pé. No modo km/h, se passares o alvo em **5 km/h** com o pé, o modo fica em pausa.
 - **Travar**: nos modos %, RPM e Limite o travão só suspende a mão enquanto travas; no modo km/h põe em pausa. Configurável por modo.
-- **Cruise control do jogo ligado** → os modos %, RPM e km/h não atuam (o Limite continua).
+
+### Acelerador de mão ou cruise control, nunca os dois
+Como o cruise control e o limitador de velocidade de um carro, que partilham os mesmos botões:
+
+| Estado | HUD | Cruise control |
+|---|---|---|
+| **Sistema desligado** | não aparece | funciona normalmente |
+| **Pausa** | `… OFF` | bloqueado |
+| **Modo ligado** | aparece | bloqueado |
+
+- Ligar um modo desliga o cruise control. Com o acelerador de mão ligado ou em pausa, as teclas do cruise control ficam desativadas e, se outra coisa o ligar, é desligado logo.
+- Assim podes **pôr os mesmos botões** (ligar/desligar, subir, descer) no cruise control e no acelerador de mão: a tecla de modo decide quem eles controlam. Só a tecla de modo tem de ficar num botão só dela.
+- Funciona com o cruise control do jogo e com o **Vehicle Inspector**.
 
 ### Ligar/desligar sem perder o valor
 - A tecla **ligar/desligar** põe em pausa e guarda o modo e o valor (útil nas cabeceiras). Carrega outra vez e retoma: os modos %, RPM e Limite voltam ao mesmo valor; o modo km/h fica na **velocidade a que vais nesse momento**.
@@ -43,7 +55,8 @@ A tecla de modo só percorre os modos que servem para a caixa do trator (e que e
 | Subir (5 % / 50 RPM / 1 km/h / 50 RPM) | `Ctrl esq. + Page Up` |
 | Descer | `Ctrl esq. + Page Down` |
 | Mover HUD | `Ctrl dir. + 0 do teclado numérico` |
-| Alavanca (eixo analógico) | *sem tecla* — empurrar mais = muda mais depressa, centro = mantém |
+
+Subir/descer aceitam teclas, botões **ou um eixo analógico**: com um eixo, empurrar mais = muda mais depressa, centro = mantém.
 
 > ⚠️ Atribui as ações de modo e de ligar/desligar a **botões**, não a um eixo analógico. Um eixo a passar pelo centro dispara-as repetidamente.
 

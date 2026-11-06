@@ -12,10 +12,11 @@ Um acelerador de mão a sério para todos os tratores. Na caixa manual fixas o a
 A tecla de modo só percorre os modos que servem para a caixa do trator (e que estão ligados nas configurações):
 - **Caixa manual:** sistema desligado → % → RPM → Limite → sistema desligado
 - **CVT / caixa automática:** sistema desligado → km/h → Limite → sistema desligado
+- **CVT com o [CVT Addon](https://github.com/SbSh-DNA-ModDing/FS25_CVT_Addon_Dev):** sistema desligado → % → km/h → Limite → sistema desligado
 
 | Modo | Caixas | O que faz |
 |---|---|---|
-| **%** | Manual | Fixa a **posição do acelerador** (0–100 %), como a alavanca de mão de um trator antigo. Em ponto morto acelera em seco; com mudança engatada é o mesmo que carregar no pedal. Numa subida, as RPM caem. |
+| **%** | Manual (CVT com o CVT Addon) | Fixa a **posição do acelerador** (0–100 %), como a alavanca de mão de um trator antigo. Em ponto morto acelera em seco; com mudança engatada é o mesmo que carregar no pedal. Numa subida, as RPM caem. Numa CVT com o CVT Addon passa a mexer no **acelerador de mão do CVT Addon** (ver abaixo). |
 | **RPM** | Manual | Fixa as **RPM alvo** (ex.: 1800). O acelerador é ajustado sozinho para as manter a subir e a descer, até ao limite de potência do motor. Se nem a fundo chegar, reduz-se a mudança. |
 | **km/h** | CVT / automática | Como a alavanca de condução dos CVT modernos: ao ligar **fica na velocidade atual** (parado: 1 km/h) e subir/descer mudam-na 1 km/h de cada vez. **Memória separada para a frente e para trás** (com o inversor manual). Não mexe na velocidade memorizada do cruise control do jogo. |
 | **Limite** | Todas | O "corte" do motor: podes acelerar a fundo, mas as RPM **nunca passam** do valor definido. Começa nas RPM máximas e vais baixando. |
@@ -36,6 +37,12 @@ Como o cruise control e o limitador de velocidade de um carro, que partilham os 
 - Ligar um modo desliga o cruise control. Com o acelerador de mão ligado ou em pausa, as teclas do cruise control ficam desativadas e, se outra coisa o ligar, é desligado logo.
 - Assim podes **pôr os mesmos botões** (ligar/desligar, subir, descer) no cruise control e no acelerador de mão: a tecla de modo decide quem eles controlam. Só a tecla de modo tem de ficar num botão só dela.
 - Funciona com o cruise control do jogo e com o **Vehicle Inspector**.
+
+### Acelerador de mão do CVT Addon com botões
+O [CVT Addon](https://github.com/SbSh-DNA-ModDing/FS25_CVT_Addon_Dev) tem o seu próprio acelerador de mão (mais rotações, ex.: hidráulica mais rápida em carregadoras e escavadoras), mas só num eixo analógico. Com o CVT Addon instalado, o modo **%** também aparece nos veículos CVT e mexe nesse acelerador de mão com os botões subir/descer, sem precisar de uma alavanca.
+- Pausa, sistema desligado, desligar o motor ou sair do veículo põem-no outra vez a 0.
+- Se também usares uma alavanca no eixo do CVT Addon, ganha a última que mexeu. Com o acelerador de mão desligado, este mod nunca mexe no valor da alavanca.
+- Sem o CVT Addon nada muda: no jogo base a hidráulica não depende das rotações do motor.
 
 ### Ligar/desligar sem perder o valor
 - A tecla **ligar/desligar** põe em pausa e guarda o modo e o valor (útil nas cabeceiras). Carrega outra vez e retoma: os modos %, RPM e Limite voltam ao mesmo valor; o modo km/h fica na **velocidade a que vais nesse momento**.

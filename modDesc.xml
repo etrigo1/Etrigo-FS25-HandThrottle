@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="no" ?>
 <modDesc descVersion="104">
     <author>Etrigo</author>
-    <version>1.5.0.0</version>
+    <version>1.6.0.0</version>
 
     <title>
         <en>Hand Throttle</en>
@@ -19,6 +19,7 @@ Manual gearbox:
 
 CVT / automatic gearbox:
 - km/h mode: like the drive lever of modern CVT tractors. Switching it on keeps the current speed; increase/decrease change it. Separate memory for forward and reverse.
+- With CVT Addon: % mode controls the CVT Addon hand throttle with buttons, no analog lever needed (e.g. more engine RPM = faster hydraulics on loaders and excavators).
 
 All gearboxes:
 - RPM limit mode: full throttle is allowed, but the engine never goes above the set RPM.
@@ -36,6 +37,7 @@ Schaltgetriebe:
 
 Stufenlos / Automatik:
 - km/h-Modus: hält die aktuelle Geschwindigkeit, mit eigenem Speicher für vorwärts und rückwärts.
+- Mit CVT Addon: der %-Modus steuert das Handgas des CVT Addon per Tasten, ohne analogen Hebel.
 
 Alle Getriebe:
 - Drehzahlbegrenzung: Vollgas erlaubt, aber der Motor überschreitet nie die eingestellte Drehzahl.
@@ -51,6 +53,7 @@ Caixa manual:
 
 CVT / caixa automática:
 - Modo km/h: como a alavanca de condução dos CVT modernos. Ao ligar, fica na velocidade atual; subir/descer mudam-na. Memória separada para a frente e para trás.
+- Com o CVT Addon: o modo % controla o acelerador de mão do CVT Addon com botões, sem precisar de uma alavanca analógica (ex.: mais rotações = hidráulica mais rápida em carregadoras e escavadoras).
 
 Todas as caixas:
 - Modo limite de RPM: podes acelerar a fundo, mas o motor nunca passa das RPM definidas.

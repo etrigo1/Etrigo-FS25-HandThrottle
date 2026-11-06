@@ -14,7 +14,8 @@
 --   Em pausa ou ligado o cruise control fica bloqueado: as teclas dele são desativadas
 --   e, se ligar por outro caminho, é desligado logo.
 --
---   %      : fixa a posição do acelerador (pedal mínimo).
+--   %      : fixa a posição do acelerador (pedal mínimo). Numa CVT com o CVT Addon
+--            não mexe no pedal: passa o valor ao acelerador de mão do CVT Addon.
 --   RPM    : fixa as RPM alvo; um controlador PI ajusta o pedal sozinho.
 --   km/h   : fica na velocidade alvo (limite de velocidade + acelerador a fundo,
 --            como o cruise control do jogo, mas com memória própria para a frente e para trás).
@@ -47,6 +48,8 @@ HandThrottle.MODE_KEYS = {
 -- ordem da tecla de modo
 HandThrottle.MANUAL_CYCLE = {HandThrottle.MODE_PERCENT, HandThrottle.MODE_RPM, HandThrottle.MODE_RPM_LIMIT}
 HandThrottle.AUTOMATIC_CYCLE = {HandThrottle.MODE_SPEED, HandThrottle.MODE_RPM_LIMIT}
+-- CVT com o CVT Addon: o modo % manda no acelerador de mão do CVT Addon
+HandThrottle.CVT_ADDON_CYCLE = {HandThrottle.MODE_PERCENT, HandThrottle.MODE_SPEED, HandThrottle.MODE_RPM_LIMIT}
 
 -- Controlador do modo RPM (erro normalizado pela gama de RPM do motor)
 HandThrottle.RPM_KP = 1.5               -- ganho proporcional
@@ -316,6 +319,9 @@ function HandThrottle:onLoad(savegame)
 
     -- ações do cruise control desativadas por nós: nome da ação -> id do evento
     spec.blockedActionEvents = {}
+
+    -- último valor (0-1) que enviámos ao acelerador de mão do CVT Addon; nil = nenhum
+    spec.cvtAddonValue = nil
 end
 
 
@@ -335,6 +341,9 @@ function HandThrottle:onLeaveVehicle(wasEntered)
     HandThrottle.pauseHandThrottle(self, true)
 
     if wasEntered then
+        -- o onUpdate do condutor deixa de correr: pôr já o acelerador de mão do CVT Addon a 0
+        HandThrottle.updateCvtAddon(self, 0)
+
         if not HandThrottle.getConfig().general.rememberPerVehicle then
             HandThrottle.forgetHandThrottle(self)
         end
@@ -465,6 +474,46 @@ function HandThrottle:getHandThrottleIsManualTransmission()
 end
 
 
+-- CVT Addon (FS25_CVT_Addon): devolve a classe se este veículo tem o acelerador de mão dele.
+-- Esse acelerador de mão só atua em CVT (isVarioTM); muda-se pela função do eixo dele,
+-- que grava o valor e o sincroniza em multijogador.
+function HandThrottle.getCvtAddon(vehicle)
+    local cvtSpec = vehicle.spec_CVTaddon
+    if cvtSpec == nil or cvtSpec.isVarioTM ~= true then
+        return nil
+    end
+
+    local cvtMod = FS25_CVT_Addon
+    local cvtAddon = cvtMod ~= nil and cvtMod.CVTaddon or nil
+    if cvtAddon == nil or cvtAddon.VarioRpmAxis == nil then
+        return nil
+    end
+    return cvtAddon
+end
+
+
+-- envia o valor (0-1) ao acelerador de mão do CVT Addon, só quando muda.
+-- O 0 só é enviado se fomos nós a pô-lo acima de 0 (não apaga a alavanca de quem a usa).
+function HandThrottle.updateCvtAddon(vehicle, value)
+    local spec = vehicle.spec_handThrottle
+    if value <= 0 and spec.cvtAddonValue == nil then
+        return
+    end
+    if value == spec.cvtAddonValue then
+        return
+    end
+
+    local cvtAddon = HandThrottle.getCvtAddon(vehicle)
+    if cvtAddon == nil then
+        spec.cvtAddonValue = nil
+        return
+    end
+
+    cvtAddon.VarioRpmAxis(vehicle, "SETVARIORPM_AXIS", value)
+    spec.cvtAddonValue = value > 0 and value or nil
+end
+
+
 -- o modo serve para a caixa deste veículo? (não vê se está ligado nas configurações)
 function HandThrottle.getModeFitsGearbox(vehicle, mode)
     if mode == HandThrottle.MODE_RPM_LIMIT then
@@ -474,6 +523,9 @@ function HandThrottle.getModeFitsGearbox(vehicle, mode)
     local isManual = vehicle:getHandThrottleIsManualTransmission()
     if mode == HandThrottle.MODE_SPEED then
         return not isManual
+    end
+    if mode == HandThrottle.MODE_PERCENT and not isManual then
+        return HandThrottle.getCvtAddon(vehicle) ~= nil
     end
     return isManual
 end
@@ -551,7 +603,10 @@ function HandThrottle:updateVehiclePhysics(superFunc, axisForward, axisSide, doH
 
         if spec.mode ~= HandThrottle.MODE_OFF then
             if getCanApplyHandThrottle(self, spec.mode) then
-                if spec.mode == HandThrottle.MODE_PERCENT or spec.mode == HandThrottle.MODE_RPM then
+                if spec.mode == HandThrottle.MODE_PERCENT and not self:getHandThrottleIsManualTransmission() then
+                    -- CVT com o CVT Addon: o % vai para o acelerador de mão dele (onUpdate do condutor)
+                    spec.pedal = 0
+                elseif spec.mode == HandThrottle.MODE_PERCENT or spec.mode == HandThrottle.MODE_RPM then
                     local playerOverrides = axisForward < 0 or axisForward > spec.pedal
                     HandThrottle.updatePedal(self, spec, playerOverrides, dt)
 
@@ -672,6 +727,15 @@ function HandThrottle:onUpdate(dt, isActiveForInput, isActiveForInputIgnoreSelec
     if isSystemOn and getIsCruiseControlOn(self) then
         self:setCruiseControlState(Drivable.CRUISECONTROL_STATE_OFF)
     end
+
+    -- CVT Addon: o modo % numa CVT manda no acelerador de mão dele; fora disso volta a 0.
+    -- O +0.5 evita que o arredondamento para baixo dele (2 casas) tire 1 % por erro de vírgula.
+    local cvtAddonValue = 0
+    if spec.mode == HandThrottle.MODE_PERCENT and not self:getHandThrottleIsManualTransmission()
+        and getCanApplyHandThrottle(self, spec.mode) and spec.percent > 0 then
+        cvtAddonValue = (spec.percent + 0.5) / 100
+    end
+    HandThrottle.updateCvtAddon(self, cvtAddonValue)
 
     if spec.mode == HandThrottle.MODE_OFF then
         return
@@ -855,7 +919,12 @@ end
 function HandThrottle:actionEventToggleMode(actionName, inputValue, callbackState, isAnalog)
     local spec = self.spec_handThrottle
 
-    local cycle = self:getHandThrottleIsManualTransmission() and HandThrottle.MANUAL_CYCLE or HandThrottle.AUTOMATIC_CYCLE
+    local cycle = HandThrottle.AUTOMATIC_CYCLE
+    if self:getHandThrottleIsManualTransmission() then
+        cycle = HandThrottle.MANUAL_CYCLE
+    elseif HandThrottle.getCvtAddon(self) ~= nil then
+        cycle = HandThrottle.CVT_ADDON_CYCLE
+    end
     local available = {}
     for _, mode in ipairs(cycle) do
         if HandThrottle.getModeConfig(mode).enabled then

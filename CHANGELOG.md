@@ -2,6 +2,11 @@
 
 The versions before 1.3.0.0 were developed and tested locally before the repository existed. Their commits and tags were **reconstructed** from the development history: every change was replayed in order from the very first version, and the result matches the 1.3.0.0 files byte for byte. Only 1.3.0.0 and later have a downloadable release; 1.0.0.0 and 1.0.0.1 do not work in game (see below).
 
+## 1.6.0.0 — 2026-11-06
+- **CVT Addon support:** on CVT vehicles with [CVT Addon](https://github.com/SbSh-DNA-ModDing/FS25_CVT_Addon_Dev), the **% mode** is now available and controls the CVT Addon hand throttle with the increase/decrease buttons, so no analog throttle lever is needed (e.g. more engine RPM = faster hydraulics on loaders and excavators). Mode cycle there: system off → % → km/h → Limit → system off.
+- Pausing, switching the system off, stopping the engine or leaving the vehicle sets the CVT Addon hand throttle back to 0. With the hand throttle off, the value of an analog lever on the CVT Addon axis is never touched.
+- Without CVT Addon nothing changes.
+
 ## 1.5.0.0 — 2026-10-31
 - **Hand throttle or cruise control, never both** (like the cruise control and speed limiter of a car). New "system off" state (no HUD) where the cruise control works normally; with a mode on or paused, the cruise control is blocked: its keys are disabled and it is switched off if anything turns it on. Works with the game's cruise control and with Vehicle Inspector. The same buttons can now be bound to both.
 - The mode key is the selector: system off → modes → system off. While paused it continues the cycle from the paused mode.

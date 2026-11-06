@@ -12,10 +12,11 @@ A real hand throttle for every tractor. With a manual gearbox, set the throttle 
 The mode key only cycles through the modes that fit the tractor's gearbox (and are enabled in the settings):
 - **Manual gearbox:** system off → % → RPM → Limit → system off
 - **CVT / automatic gearbox:** system off → km/h → Limit → system off
+- **CVT with [CVT Addon](https://github.com/SbSh-DNA-ModDing/FS25_CVT_Addon_Dev):** system off → % → km/h → Limit → system off
 
 | Mode | Gearboxes | What it does |
 |---|---|---|
-| **%** | Manual | Fixes the **throttle position** (0–100 %), like the hand lever of an older tractor. In neutral the engine revs freely; in gear it is the same as pressing the pedal. Uphill, the RPM drops. |
+| **%** | Manual (CVT with CVT Addon) | Fixes the **throttle position** (0–100 %), like the hand lever of an older tractor. In neutral the engine revs freely; in gear it is the same as pressing the pedal. Uphill, the RPM drops. On a CVT with CVT Addon it sets the **CVT Addon hand throttle** instead (see below). |
 | **RPM** | Manual | Fixes the **target RPM** (e.g. 1800). The throttle is adjusted automatically to hold it uphill and downhill, up to the engine's power limit. If even full throttle isn't enough, shift down. |
 | **km/h** | CVT / automatic | Like the drive lever of modern CVT tractors: switching it on **keeps the current speed** (standing still: 1 km/h), increase/decrease change it by 1 km/h. **Separate memory for forward and reverse** (with the manual shuttle). The game's cruise control speed is left untouched. |
 | **Limit** | All | The engine "governor": full throttle is allowed, but the RPM **never goes above** the set value. Starts at the maximum RPM; lower it from there. |
@@ -36,6 +37,12 @@ Like the cruise control and speed limiter of a car, which share the same buttons
 - Switching a mode on turns the cruise control off. While the hand throttle is on or paused, the cruise control keys are disabled and, if something else switches it on, it is switched off at once.
 - So you can **bind the same buttons** (on/off, increase, decrease) to the cruise control and to the hand throttle: the mode key decides which one they control. Only the mode key must stay on a button of its own.
 - Works with the game's cruise control and with **Vehicle Inspector**.
+
+### CVT Addon hand throttle with buttons
+[CVT Addon](https://github.com/SbSh-DNA-ModDing/FS25_CVT_Addon_Dev) has its own hand throttle (more engine RPM, e.g. faster hydraulics on loaders and excavators), but only on an analog axis. With CVT Addon installed, the **%** mode is also available on CVT vehicles and drives that hand throttle with the increase/decrease buttons, so no throttle lever is needed.
+- Pausing, switching the system off, stopping the engine or leaving the vehicle sets it back to 0.
+- If you also use an analog lever on the CVT Addon axis, the last one moved wins. With the hand throttle off, this mod never touches the lever's value.
+- Without CVT Addon nothing changes: in the base game the hydraulics do not depend on engine RPM.
 
 ### On/off without losing the setting
 - The **on/off** key pauses and keeps the mode and value (handy at the headland). Press it again to resume: %, RPM and Limit come back to the same value; km/h mode resumes at **your current speed**.

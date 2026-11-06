@@ -1,7 +1,7 @@
 🇵🇹 Português | [🇺🇸 Read in English](README.md)
 
 # 🚜 Acelerador de Mão (Etrigo_HandThrottle)
-**Versão atual:** 1.7.0.0  |  **Farming Simulator 25**  |  **Multijogador:** suportado
+**Versão atual:** 1.7.0.1  |  **Farming Simulator 25**  |  **Multijogador:** suportado
 
 Um acelerador de mão a sério para todos os tratores. Na caixa manual fixas o acelerador ou as RPM e só mexes nas mudanças; num CVT fixas a velocidade como na alavanca de condução dos tratores modernos; e em qualquer caixa podes limitar as RPM máximas do motor. Nunca trabalha ao mesmo tempo que o cruise control, por isso os dois podem partilhar os mesmos botões, e com o CVT Addon controla o acelerador de mão dele com botões.
 
@@ -41,6 +41,8 @@ Como o cruise control e o limitador de velocidade de um carro, que partilham os 
 ### Arrasto ao ralenti (manual com embraiagem)
 Com a caixa do jogo em **"manual com embraiagem"**, uma mudança engatada e a embraiagem solta (ou a patinar), o trator **anda devagar ao ralenti sem acelerar**, como um trator real. O motor puxa com a força que tem ao ralenti, mas nunca passa do ralenti (a descer faz de travão-motor). Soltar a embraiagem de repente com carga continua a poder ir abaixo, como no jogo base.
 - Não faz nada com a embraiagem carregada, em ponto morto, a meter a mudança, a travar, com o travão de mão, com o cruise control, com a IA ou sem ninguém a conduzir.
+- A força cresce com o curso da embraiagem: quase nada mal a levantas, toda com ela solta (a curva afina-se com `clutchCurve`).
+- Com o pé no acelerador ganha o maior dos dois, como num trator com regulador: carregar mais do que o arrasto = manda o pé.
 - O acelerador de mão ganha: o % acima de 0 e o modo RPM funcionam como antes; com o limite de RPM vale o teto mais baixo.
 - Vem ligado; desliga-se com `<idleCreep enabled="false"/>` no ficheiro de configurações. Desliga-se sozinho com o **More Realistic** carregado (que já faz o mesmo).
 
@@ -88,7 +90,8 @@ Criado sozinho no primeiro arranque. Edita-se com o jogo fechado; valores em fal
         <speed    enabled="true" brakeOff="true"  step="1" pedalOffDifference="5"/>
     </modes>
     <general rememberPerVehicle="true" keyRepeatDelay="400" keyRepeatInterval="100"/>
-    <idleCreep enabled="true" torque="1"/>
+    <idleCreep enabled="true" torque="1" clutchCurve="1"/>
+    <debug enabled="false"/>
 </handThrottle>
 ```
 
@@ -103,6 +106,8 @@ Criado sozinho no primeiro arranque. Edita-se com o jogo fechado; valores em fal
 | `keyRepeatDelay` / `keyRepeatInterval` | Tecla carregada: ms até repetir / ms entre repetições |
 | `idleCreep enabled` | Liga/desliga o arrasto ao ralenti (manual com embraiagem) |
 | `idleCreep torque` | Força do arrasto, 0.1–1 (1 = toda a força que o motor tem ao ralenti) |
+| `idleCreep clutchCurve` | Como a força cresce ao largar a embraiagem, 0.3–3. `1` = a direito (a meio do curso, metade da força); abaixo de 1 morde mais cedo (ex.: `0.5`); acima de 1 é mais suave no início e só puxa a sério no fim (ex.: `2`) |
+| `debug enabled` | Log de diagnóstico no `log.txt` do jogo (linhas que começam por `[HandThrottle DEBUG]`), para ajudar a encontrar problemas. Deixa desligado para jogar normalmente. Também se liga/desliga durante o jogo com o comando de consola `ethtDebug [on\|off]` |
 
 ---
 
@@ -111,6 +116,7 @@ Criado sozinho no primeiro arranque. Edita-se com o jogo fechado; valores em fal
 - Modo km/h em marcha-atrás precisa do inversor manual (definição de mudança de sentido do jogo); sem ele, o modo km/h é só para a frente.
 - **Vehicle Inspector**: as teclas do cruise control dele ficam bloqueadas com o acelerador de mão ligado ou em pausa, tal como as do jogo.
 - **CVT Addon**: o modo % controla o acelerador de mão dele nos veículos CVT (ver acima).
+- **Advanced Damage System (ADS)**: com a embraiagem gasta pelo ADS, o arrasto patina em vez de ir abaixo; com a embraiagem avariada não faz nada. Quem manda na embraiagem é o ADS (o mod só lê).
 - O **FS25_RPMResponsiveSpeeds** também mexe nas RPM. Podem estar os dois carregados, mas desativa um deles se quiseres testar o outro isolado.
 - Não grava nada no savegame.
 

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="no" ?>
 <modDesc descVersion="104">
     <author>Etrigo</author>
-    <version>1.7.0.0</version>
+    <version>1.7.0.1</version>
 
     <title>
         <en>Hand Throttle</en>
@@ -26,7 +26,9 @@ All gearboxes:
 
 Hand throttle and cruise control never work together, like the cruise control and speed limiter of a car. With the system switched off (no HUD) the cruise control works normally; with a mode on or paused, the cruise control is blocked. So the same buttons can be bound to both: the mode key chooses which one they control. Works with the game's cruise control and with Vehicle Inspector.
 
-Idle creep (on by default): with the "manual with clutch" gearbox setting, a gear engaged and the clutch released, the tractor creeps along at idle without throttle, like a real tractor. Can be switched off in the settings file.
+Idle creep (on by default): with the "manual with clutch" gearbox setting, a gear engaged and the clutch released, the tractor creeps along at idle without throttle, like a real tractor. The strength builds up with the clutch travel, and the engine stalls if you start in too high a gear. Can be switched off in the settings file.
+
+Compatible with Advanced Damage System (ADS): with a clutch worn by ADS the creep slips, with a failed clutch it does nothing.
 
 The pedal always wins when pressed further. On/off key that keeps the setting, per-tractor memory, movable HUD. Increase/decrease accept keys, buttons or an analog axis. Each mode can be switched off in modSettings/Etrigo_HandThrottle.xml.
 ]]></en>
@@ -47,6 +49,8 @@ Alle Getriebe:
 Handgas und Tempomat sind nie gleichzeitig aktiv. Ist das System ausgeschaltet (kein HUD), funktioniert der Tempomat normal; sonst ist er gesperrt. So können dieselben Tasten für beide belegt werden.
 
 Leerlauf-Kriechen (standardmäßig an): mit "manuell mit Kupplung", eingelegtem Gang und gelöster Kupplung rollt der Traktor im Leerlauf an, wie ein echter Traktor.
+
+Kompatibel mit Advanced Damage System (ADS).
 ]]></de>
         <pt><![CDATA[
 Acelerador de mão para todos os tratores.
@@ -64,7 +68,9 @@ Todas as caixas:
 
 O acelerador de mão e o cruise control nunca trabalham ao mesmo tempo, como o cruise control e o limitador de velocidade de um carro. Com o sistema desligado (sem HUD) o cruise control funciona normalmente; com um modo ligado ou em pausa, o cruise control fica bloqueado. Assim podes pôr os mesmos botões nos dois: a tecla de modo escolhe quem eles controlam. Funciona com o cruise control do jogo e com o Vehicle Inspector.
 
-Arrasto ao ralenti (ligado por defeito): com a caixa em "manual com embraiagem", uma mudança engatada e a embraiagem solta, o trator anda devagar ao ralenti sem acelerar, como um trator real. Pode ser desligado no ficheiro de configurações.
+Arrasto ao ralenti (ligado por defeito): com a caixa em "manual com embraiagem", uma mudança engatada e a embraiagem solta, o trator anda devagar ao ralenti sem acelerar, como um trator real. A força cresce com o curso da embraiagem, e o motor vai abaixo se arrancares numa mudança alta demais. Pode ser desligado no ficheiro de configurações.
+
+Compatível com o Advanced Damage System (ADS): com a embraiagem gasta pelo ADS o arrasto patina, com a embraiagem avariada não faz nada.
 
 O pedal ganha sempre que carregares mais. Tecla ligar/desligar que guarda o valor, memória por trator, HUD que se pode mover. Subir/descer aceitam teclas, botões ou um eixo analógico. Cada modo pode ser desligado em modSettings/Etrigo_HandThrottle.xml.
 ]]></pt>

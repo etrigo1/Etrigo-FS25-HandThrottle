@@ -87,7 +87,10 @@ HandThrottle.DEFAULT_CONFIG = {
     },
     general = { rememberPerVehicle = true, keyRepeatDelay = 400, keyRepeatInterval = 100 },
     -- arrasto ao ralenti: caixa manual com embraiagem, mudança engatada, sem acelerador
-    idleCreep = { enabled = true, torque = 1.0 },
+    -- clutchCurve: como a força cresce com o curso da embraiagem (1 = a direito, <1 morde mais cedo, >1 mais suave no início)
+    idleCreep = { enabled = true, torque = 1.0, clutchCurve = 1.0 },
+    -- log de diagnóstico no log.txt do jogo (para encontrar problemas)
+    debug = { enabled = false },
 }
 
 -- estado do HUD: só local (por jogador), não vai para o savegame nem para a rede
@@ -195,6 +198,9 @@ function HandThrottle.loadSettings()
 
             config.idleCreep.enabled = readBool(xmlFile, "handThrottle.idleCreep#enabled", config.idleCreep.enabled)
             config.idleCreep.torque = readFloat(xmlFile, "handThrottle.idleCreep#torque", config.idleCreep.torque, 0.1, 1)
+            config.idleCreep.clutchCurve = readFloat(xmlFile, "handThrottle.idleCreep#clutchCurve", config.idleCreep.clutchCurve, 0.3, 3)
+
+            config.debug.enabled = readBool(xmlFile, "handThrottle.debug#enabled", config.debug.enabled)
 
             delete(xmlFile)
         end
@@ -244,6 +250,9 @@ function HandThrottle.saveSettings()
 
     setXMLBool(xmlFile, "handThrottle.idleCreep#enabled", config.idleCreep.enabled)
     setXMLFloat(xmlFile, "handThrottle.idleCreep#torque", config.idleCreep.torque)
+    setXMLFloat(xmlFile, "handThrottle.idleCreep#clutchCurve", config.idleCreep.clutchCurve)
+
+    setXMLBool(xmlFile, "handThrottle.debug#enabled", config.debug.enabled)
 
     saveXMLFile(xmlFile)
     delete(xmlFile)
@@ -263,6 +272,12 @@ function HandThrottle.getIdleCreepTorqueSetting()
         return 0
     end
     return math.clamp(math.floor(idleCreep.torque * 100 + 0.5), 10, 100)
+end
+
+
+-- curva da embraiagem do arrasto nas configurações deste jogador, em décimas (3-30 = 0.3-3.0)
+function HandThrottle.getIdleCreepClutchCurveSetting()
+    return math.clamp(math.floor(HandThrottle.getConfig().idleCreep.clutchCurve * 10 + 0.5), 3, 30)
 end
 
 
@@ -304,6 +319,7 @@ function HandThrottle.registerEventListeners(vehicleType)
     SpecializationUtil.registerEventListener(vehicleType, "onDraw", HandThrottle)
     SpecializationUtil.registerEventListener(vehicleType, "onLeaveVehicle", HandThrottle)
     SpecializationUtil.registerEventListener(vehicleType, "onStopMotor", HandThrottle)
+    SpecializationUtil.registerEventListener(vehicleType, "onVehiclePhysicsUpdate", HandThrottle)
 end
 
 
@@ -329,6 +345,7 @@ function HandThrottle:onLoad(savegame)
     -- arrasto ao ralenti (0 = desligado, 10-100 = força em %). Vem das configurações de quem conduz,
     -- que o envia no estado; até lá vale a configuração desta máquina.
     spec.idleCreepTorque = HandThrottle.getIdleCreepTorqueSetting()
+    spec.idleCreepClutchCurve = HandThrottle.getIdleCreepClutchCurveSetting()
 
     -- só no servidor
     spec.pedal = 0
@@ -404,6 +421,7 @@ function HandThrottle.copyState(spec)
         speedForward = spec.speedForward,
         speedBackward = spec.speedBackward,
         idleCreepTorque = spec.idleCreepTorque,
+        idleCreepClutchCurve = spec.idleCreepClutchCurve,
     }
 end
 
@@ -417,6 +435,7 @@ function HandThrottle.writeStateToStream(streamId, state)
     streamWriteUInt16(streamId, math.floor(state.speedForward * 10 + 0.5))
     streamWriteUInt16(streamId, math.floor(state.speedBackward * 10 + 0.5))
     streamWriteUInt8(streamId, state.idleCreepTorque)
+    streamWriteUInt8(streamId, state.idleCreepClutchCurve)
 end
 
 
@@ -430,11 +449,12 @@ function HandThrottle.readStateFromStream(streamId)
     state.speedForward = streamReadUInt16(streamId) / 10
     state.speedBackward = streamReadUInt16(streamId) / 10
     state.idleCreepTorque = streamReadUInt8(streamId)
+    state.idleCreepClutchCurve = streamReadUInt8(streamId)
     return state
 end
 
 
--- state: tabela com mode, lastMode, percent, rpm, rpmLimit, speedForward, speedBackward, idleCreepTorque
+-- state: tabela com mode, lastMode, percent, rpm, rpmLimit, speedForward, speedBackward, idleCreepTorque, idleCreepClutchCurve
 -- lastMode: modo guardado em pausa (MODE_OFF ou nil = nada guardado)
 function HandThrottle:setHandThrottleState(state, noEventSend)
     local spec = self.spec_handThrottle
@@ -453,6 +473,9 @@ function HandThrottle:setHandThrottleState(state, noEventSend)
     -- não vem em todos os estados (ex.: esquecer): fica o que estava
     if state.idleCreepTorque ~= nil then
         spec.idleCreepTorque = math.clamp(math.floor(state.idleCreepTorque + 0.5), 0, 100)
+    end
+    if state.idleCreepClutchCurve ~= nil then
+        spec.idleCreepClutchCurve = math.clamp(math.floor(state.idleCreepClutchCurve + 0.5), 3, 30)
     end
 
     if spec.mode == HandThrottle.MODE_OFF then
@@ -658,7 +681,15 @@ function HandThrottle:updateVehiclePhysics(superFunc, axisForward, axisSide, doH
         end
 
         if spec.idleCreepTorque > 0 then
-            axisForward = HandThrottle.applyIdleCreep(self, spec, axisForward, doHandbrake)
+            -- modo RPM, ou % acima de 0: o acelerador de mão manda (o % a 0 deixa o arrasto trabalhar)
+            local handActive = (spec.mode == HandThrottle.MODE_RPM or (spec.mode == HandThrottle.MODE_PERCENT and spec.percent > 0))
+                and getCanApplyHandThrottle(self, spec.mode)
+            axisForward = HandThrottle.applyIdleCreep(self, spec, axisForward, doHandbrake, dt, handActive)
+        else
+            spec.idleCreepActiveNow = false
+        end
+        if spec.idleCreepTorque <= 0 and HandThrottle.getConfig().debug.enabled then
+            HandThrottle.debugIdleCreep(self, spec, motor, false, "arrasto desligado nas configs", axisForward, axisForward, 0, 0, dt)
         end
     end
 
@@ -674,41 +705,372 @@ end
 
 -- Arrasto ao ralenti (como num trator real e como o More Realistic):
 -- caixa manual com embraiagem, mudança engatada, embraiagem solta ou a patinar e sem acelerador.
--- Dá pedal e põe o teto das rotações no ralenti: o motor puxa com a força que tem ao ralenti
--- mas nunca passa do ralenti (a descer faz de travão-motor). Ir abaixo fica com a regra do jogo.
-function HandThrottle.applyIdleCreep(vehicle, spec, axisForward, doHandbrake)
-    if axisForward ~= 0 or doHandbrake or not vehicle:getIsMotorStarted() then
-        return axisForward
+-- Regulador de ralenti (como o do More Realistic): compara as rotações do lado da embraiagem
+-- (rodas x relação da caixa) com o ralenti. Parado ou a ser travado pela carga = pedal todo (até à
+-- força configurada); a chegar à velocidade do ralenti alivia até um fio de pedal.
+-- Não serve olhar para as rotações do motor: a física do jogo segura o motor no ralenti
+-- (a embraiagem da física patina), por isso elas nunca descem e o trator ficava sem força.
+-- Com a embraiagem a patinar o jogo sobe as rotações conforme o pedal: isso é limitado em
+-- onVehiclePhysicsUpdate para o motor não disparar. Ir abaixo fica com a regra do jogo.
+HandThrottle.IDLE_CREEP_BAND = 100           -- RPM abaixo do ralenti para chegar à força toda
+HandThrottle.IDLE_CREEP_MIN_PEDAL = 0.02     -- fio de pedal no ralenti (com pedal 0 o jogo só o baixa devagar, em 2 s)
+HandThrottle.IDLE_CREEP_RATE = 6             -- quanto o pedal pode mudar por segundo
+HandThrottle.IDLE_CREEP_RPM_MARGIN = 50      -- folga do teto acima do ralenti
+
+-- Ir abaixo (motor afogado): a física do jogo segura o motor no ralenti mesmo com as rodas quase
+-- paradas, e o contador do jogo (embraiagem < 20 % do motor durante 0.5 s) volta a 0 com qualquer
+-- tremor das rodas. Resultado: arrancava parado em 8.ª da gama alta. Regra do arrasto: com a
+-- embraiagem (quase) solta, rotações da embraiagem abaixo de metade do ralenti durante 1 s = vai abaixo.
+-- O contador não volta logo a 0: desce aos poucos, para os tremores não o apagarem.
+HandThrottle.IDLE_CREEP_STALL_RATIO = 0.5       -- fração do ralenti abaixo da qual o motor está a ser afogado
+HandThrottle.IDLE_CREEP_STALL_TIME = 1000       -- ms afogado até ir abaixo
+HandThrottle.IDLE_CREEP_STALL_ENGAGEMENT = 0.8  -- só com a embraiagem quase solta (patinar com jeito não conta)
+HandThrottle.IDLE_CREEP_STALL_RECOVER = 2       -- o contador desce 2x mais depressa do que sobe
+
+-- handActive: o acelerador de mão (% ou RPM) está a dar pedal -> ele manda, sem arrasto
+function HandThrottle.applyIdleCreep(vehicle, spec, axisForward, doHandbrake, dt, handActive)
+    local active, reason = HandThrottle.getIdleCreepActive(vehicle, axisForward, doHandbrake)
+    if active and handActive then
+        active, reason = false, "acelerador de mão"
+    end
+
+    -- ADS: quem manda na embraiagem é ele. Avaria terminal = sem tração, o arrasto não faz nada.
+    local adsClutch = HandThrottle.getAdsClutchState(vehicle)
+    spec.debugAdsClutch = adsClutch
+    if active and adsClutch ~= nil and adsClutch.value >= 1 then
+        active, reason = false, "embraiagem avariada (ADS)"
+    end
+
+    local motor = vehicle:getMotor()
+    local creepRpm, target = 0, 0
+    local axisIn = axisForward
+
+    if active then
+        -- o mínimo que o jogo pede: ralenti, ou as rotações da tomada de força
+        creepRpm = motor:getRequiredMotorRpmRange()
+
+        local clutchRpm = HandThrottle.getCreepClutchRpm(motor)
+
+        -- a força cresce com o curso da embraiagem: 0 nos 0.9 (onde o jogo já engata a mudança a meio),
+        -- toda com a embraiagem solta. Sem isto agarrava toda logo no início do curso.
+        local engagement = HandThrottle.getClutchEngagement(motor, (spec.idleCreepClutchCurve or 10) / 10)
+        local maxPedal = spec.idleCreepTorque / 100 * engagement
+        local err = creepRpm - clutchRpm
+        target = math.clamp(0.1 + 0.9 * err / HandThrottle.IDLE_CREEP_BAND, HandThrottle.IDLE_CREEP_MIN_PEDAL, 1) * maxPedal
+
+        local maxStep = HandThrottle.IDLE_CREEP_RATE * (dt or 16) * 0.001
+        local pedal = spec.idleCreepPedal or 0
+        pedal = pedal + math.clamp(target - pedal, -maxStep, maxStep)
+        pedal = math.max(pedal, HandThrottle.IDLE_CREEP_MIN_PEDAL * maxPedal)
+
+        -- o pé, como num trator com regulador: ganha o maior. Pé acima do arrasto = manda o pé
+        -- (sem teto); o pedal do arrasto continua a partir do pé quando o largares (sem saltos).
+        -- Sem zona morta: o ruído de um pedal parado fica abaixo do fio de pedal do arrasto.
+        if axisIn > pedal then
+            spec.idleCreepPedal = axisIn
+            spec.idleCreepStallTimer = 0
+            active, reason = false, "acelerador"
+        elseif HandThrottle.updateIdleCreepStall(vehicle, spec, motor, creepRpm, clutchRpm, dt,
+            adsClutch ~= nil and adsClutch.slip > HandThrottle.ADS_SLIP_THRESHOLD) then
+            spec.idleCreepPedal = 0
+            active, reason = false, "foi abaixo (afogado)"
+        else
+            spec.idleCreepPedal = pedal
+            axisForward = pedal
+
+            motor.handThrottleRpmLimit = math.min(motor.handThrottleRpmLimit or math.huge, creepRpm + HandThrottle.IDLE_CREEP_RPM_MARGIN)
+
+            -- com a embraiagem a patinar, as rotações que o jogo mostra seguem o pedal: teto no ralenti + folga.
+            -- Nunca abaixo de 0.05: o ADS só faz patinar uma embraiagem gasta com lastAcceleratorPedal >= 0.05.
+            local minRpm, maxRpm = motor:getMinRpm(), motor:getMaxRpm()
+            spec.idleCreepFakePedalMax = math.clamp((creepRpm + HandThrottle.IDLE_CREEP_RPM_MARGIN - minRpm) / math.max(maxRpm - minRpm, 1),
+                HandThrottle.IDLE_CREEP_FAKE_PEDAL_MIN, 1)
+        end
+    else
+        spec.idleCreepPedal = 0
+        spec.idleCreepStallTimer = 0
+    end
+    spec.idleCreepActiveNow = active
+
+    if HandThrottle.getConfig().debug.enabled then
+        HandThrottle.debugIdleCreep(vehicle, spec, motor, active, reason, axisIn, axisForward, target, creepRpm, dt)
+    end
+
+    return axisForward
+end
+
+
+-- embraiagem: 0 carregada (0.9 ou mais = ponto morto no jogo) ... 1 solta.
+-- curve (clutchCurve): 1 = a direito; abaixo de 1 morde mais cedo; acima de 1 mais suave no início
+HandThrottle.CLUTCH_NEUTRAL = 0.9
+
+function HandThrottle.getClutchEngagement(motor, curve)
+    local engagement = math.clamp((HandThrottle.CLUTCH_NEUTRAL - (motor.manualClutchValue or 0)) / HandThrottle.CLUTCH_NEUTRAL, 0, 1)
+    return engagement ^ (curve or 1)
+end
+
+
+-- rotações do lado da embraiagem (rodas x relação). Com sinal: a descair para trás = negativo = mais força.
+-- Em marcha-atrás a relação e as rodas são negativas, o produto fica positivo.
+function HandThrottle.getCreepClutchRpm(motor)
+    if motor.getClutchRpm ~= nil then
+        return motor:getClutchRpm()
+    end
+    return HandThrottle.getRealMotorRpm(motor)
+end
+
+
+-- rotações reais (a getLastMotorRpm nunca desce abaixo do ralenti)
+function HandThrottle.getRealMotorRpm(motor)
+    if motor.getNonClampedMotorRpm ~= nil then
+        return motor:getNonClampedMotorRpm()
+    end
+    return motor:getLastMotorRpm()
+end
+
+
+-- motor afogado pelo arrasto: devolve true se foi abaixo (e desliga-o).
+-- adsSlipping: a embraiagem está a patinar por avaria do ADS -> o motor não está preso às rodas, não conta.
+function HandThrottle.updateIdleCreepStall(vehicle, spec, motor, creepRpm, clutchRpm, dt, adsSlipping)
+    local timer = spec.idleCreepStallTimer or 0
+    dt = dt or 16
+
+    local engagement = HandThrottle.getClutchEngagement(motor, 1)
+    local lugging = not adsSlipping
+        and engagement >= HandThrottle.IDLE_CREEP_STALL_ENGAGEMENT
+        and clutchRpm < creepRpm * HandThrottle.IDLE_CREEP_STALL_RATIO
+
+    if lugging then
+        timer = timer + dt
+    else
+        timer = math.max(timer - dt * HandThrottle.IDLE_CREEP_STALL_RECOVER, 0)
+    end
+
+    if timer >= HandThrottle.IDLE_CREEP_STALL_TIME and vehicle.stopMotor ~= nil then
+        spec.idleCreepStallTimer = 0
+        vehicle:stopMotor()
+        return true
+    end
+
+    spec.idleCreepStallTimer = timer
+    return false
+end
+
+
+--------------------------------------------------------------------------------
+-- ADS (Advanced Damage System): só leitura. Sem o ADS carregado, devolve nil e nada muda.
+-- Avaria DRY_CLUTCH_PACK_FAILURE -> efeito CLUTCH_SLIP_EFFECT:
+--   value 0.2-1 (1 = avaria terminal, caixa praticamente desligada)
+--   slipFactor = patinagem atual (o ADS aumenta a relação da caixa até x2)
+-- O mod nunca escreve no ADS nem envia eventos dele.
+--------------------------------------------------------------------------------
+HandThrottle.ADS_MOD_NAME = "FS25_AdvancedDamageSystem"
+HandThrottle.ADS_SLIP_THRESHOLD = 0.01
+HandThrottle.IDLE_CREEP_FAKE_PEDAL_MIN = 0.05
+
+function HandThrottle.getAdsModule()
+    local env = _G[HandThrottle.ADS_MOD_NAME]
+    if type(env) == "table" and type(env.ADS_VehiclePerformance) == "table" then
+        return env.ADS_VehiclePerformance
+    end
+    -- se o ADS alguma vez ficar no ambiente global
+    if type(_G.ADS_VehiclePerformance) == "table" then
+        return _G.ADS_VehiclePerformance
+    end
+    return nil
+end
+
+
+-- devolve nil sem o ADS no veículo; senão { value = 0..1, slip = >=0 }
+function HandThrottle.getAdsClutchState(vehicle)
+    local specAds = vehicle.spec_AdvancedDamageSystem
+    if specAds == nil then
+        return nil
+    end
+
+    local state = { value = 0, slip = 0 }
+
+    local ads = HandThrottle.getAdsModule()
+    if ads ~= nil and type(ads.resolveEffect) == "function" then
+        local ok, effect = pcall(ads.resolveEffect, vehicle, "CLUTCH_SLIP_EFFECT")
+        if ok and type(effect) == "table" then
+            state.value = math.clamp(tonumber(effect.value) or 0, 0, 1)
+        end
+    end
+
+    local runtime = type(specAds.effectRuntime) == "table" and specAds.effectRuntime.CLUTCH_SLIP_EFFECT or nil
+    if type(runtime) == "table" then
+        state.slip = math.max(tonumber(runtime.slipFactor) or 0, 0)
+    end
+
+    return state
+end
+
+
+-- devolve se o arrasto atua e, se não, porquê (para o log)
+function HandThrottle.getIdleCreepActive(vehicle, axisForward, doHandbrake)
+    if not vehicle:getIsMotorStarted() then
+        return false, "motor desligado"
+    end
+    if doHandbrake then
+        return false, "travão de mão"
+    end
+    if axisForward < 0 then
+        return false, "travão"
     end
 
     local motor = vehicle:getMotor()
     local manualClutchMode = VehicleMotor.SHIFT_MODE_MANUAL_CLUTCH
-    if motor == nil or manualClutchMode == nil or motor.gearShiftMode ~= manualClutchMode
-        or (motor.forwardGears == nil and motor.backwardGears == nil) then
-        return axisForward
+    if motor == nil or manualClutchMode == nil or motor.gearShiftMode ~= manualClutchMode then
+        return false, "não é manual com embraiagem"
+    end
+    if motor.forwardGears == nil and motor.backwardGears == nil then
+        return false, "sem mudanças"
     end
 
     -- ponto morto, embraiagem carregada ou a meter a mudança: não faz nada
-    local isNeutral = motor.gear == 0 or (motor.minGearRatio == 0 and motor.maxGearRatio == 0)
-    if isNeutral or (motor.manualClutchValue or 0) > 0.9 or (motor.gearChangeTimer ~= nil and motor.gearChangeTimer >= 0) then
-        return axisForward
+    if motor.gear == 0 or (motor.minGearRatio == 0 and motor.maxGearRatio == 0) then
+        return false, "ponto morto"
+    end
+    if (motor.manualClutchValue or 0) > HandThrottle.CLUTCH_NEUTRAL then
+        return false, "embraiagem carregada"
+    end
+    if motor.gearChangeTimer ~= nil and motor.gearChangeTimer >= 0 then
+        return false, "a mudar"
     end
 
     -- só com alguém a conduzir: sem IA, sem cruise control, e um trator deixado engatado não foge
-    if (vehicle.getIsAIActive ~= nil and vehicle:getIsAIActive()) or getIsCruiseControlOn(vehicle)
-        or (vehicle.getIsControlled ~= nil and not vehicle:getIsControlled()) then
-        return axisForward
+    if vehicle.getIsAIActive ~= nil and vehicle:getIsAIActive() then
+        return false, "IA"
+    end
+    if getIsCruiseControlOn(vehicle) then
+        return false, "cruise control"
+    end
+    if vehicle.getIsControlled ~= nil and not vehicle:getIsControlled() then
+        return false, "sem condutor"
     end
 
     if HandThrottle.getIsMoreRealisticLoaded() then
-        return axisForward
+        return false, "More Realistic"
     end
 
-    -- teto: o mínimo que o jogo pede (ralenti, ou as rotações da tomada de força) e o limite, se houver
-    local creepRpm = motor:getRequiredMotorRpmRange()
-    motor.handThrottleRpmLimit = math.min(motor.handThrottleRpmLimit or math.huge, creepRpm)
+    return true, "ATIVO"
+end
 
-    return spec.idleCreepTorque / 100
+
+--------------------------------------------------------------------------------
+-- Log de diagnóstico (handThrottle.debug#enabled): uma linha a cada 100 ms,
+-- e logo quando o estado muda ou o motor vai abaixo. Só com caixa manual com embraiagem.
+--------------------------------------------------------------------------------
+HandThrottle.DEBUG_INTERVAL = 100
+
+-- comando de consola: ethtDebug [on|off] -> liga/desliga o log sem reiniciar o jogo
+-- (sem argumento troca). Também grava no ficheiro de configurações.
+function HandThrottle.consoleCommandDebug(arg)
+    local config = HandThrottle.getConfig()
+    local value
+    arg = string.lower(tostring(arg or ""))
+
+    if arg == "" then
+        value = not config.debug.enabled
+    elseif arg == "on" or arg == "true" or arg == "1" then
+        value = true
+    elseif arg == "off" or arg == "false" or arg == "0" then
+        value = false
+    else
+        return "Usage: ethtDebug [on|off]"
+    end
+
+    config.debug.enabled = value
+    HandThrottle.saveSettings()
+
+    return string.format("[HandThrottle] Debug log %s (log.txt, lines '[HandThrottle DEBUG]')", value and "ON" or "OFF")
+end
+
+-- o jogo (e o More Realistic) envia aqui o pedal e o travão que vão para a física, logo depois de
+-- os guardar no motor (VehicleMotor:updateGear) e antes de o motor os usar (VehicleMotor:update).
+function HandThrottle:onVehiclePhysicsUpdate(acceleratorPedal, brakePedal, automaticBrake, currentSpeed)
+    local spec = self.spec_handThrottle
+    if spec == nil then
+        return
+    end
+
+    -- arrasto com a embraiagem a patinar (> 0.1): o jogo sobe as rotações do motor conforme o pedal
+    -- (lastAcceleratorPedal), como em ponto morto. Limitar só esse valor ao ralenti + folga; a força
+    -- que vai para as rodas (o pedal da física) não muda. Na caixa manual com embraiagem o
+    -- lastAcceleratorPedal só serve para isso e para a carga do motor.
+    if self.isServer and spec.idleCreepActiveNow and spec.idleCreepFakePedalMax ~= nil then
+        local motor = self:getMotor()
+        if motor ~= nil and motor.lastAcceleratorPedal ~= nil and (motor.manualClutchValue or 0) > 0.1 then
+            motor.lastAcceleratorPedal = math.min(motor.lastAcceleratorPedal, spec.idleCreepFakePedalMax)
+        end
+    end
+
+    -- só para o log: comparar o que o mod pede com o que é aplicado
+    if HandThrottle.config ~= nil and HandThrottle.config.debug.enabled then
+        spec.debugPhysicsAcc = acceleratorPedal
+        spec.debugPhysicsBrake = brakePedal
+        spec.debugPhysicsAutoBrake = automaticBrake
+    end
+end
+
+function HandThrottle.debugIdleCreep(vehicle, spec, motor, active, reason, axisIn, axisOut, target, creepRpm, dt)
+    if motor == nil or motor.gearShiftMode ~= VehicleMotor.SHIFT_MODE_MANUAL_CLUTCH then
+        return
+    end
+
+    local motorOn = vehicle:getIsMotorStarted()
+    local event = nil
+    if spec.debugLastReason ~= reason then
+        event = "estado: " .. tostring(spec.debugLastReason) .. " -> " .. reason
+    end
+    if spec.debugMotorOn == true and not motorOn then
+        event = "MOTOR FOI ABAIXO / DESLIGOU"
+    end
+    spec.debugLastReason = reason
+    spec.debugMotorOn = motorOn
+
+    spec.debugTimer = (spec.debugTimer or 0) + (dt or 16)
+    if event == nil and spec.debugTimer < HandThrottle.DEBUG_INTERVAL then
+        return
+    end
+    spec.debugTimer = 0
+
+    local function num(value)
+        return tonumber(value) or 0
+    end
+
+    local clutchRpm = motor.getClutchRpm ~= nil and num(motor:getClutchRpm()) or 0
+    local minRange, maxRange = 0, 0
+    if motor.getRequiredMotorRpmRange ~= nil then
+        minRange, maxRange = motor:getRequiredMotorRpmRange()
+    end
+    local speed = vehicle.getLastSpeed ~= nil and num(vehicle:getLastSpeed()) or 0
+
+    -- valores do More Realistic, se estiver carregado (rad/s -> RPM)
+    local mrText = ""
+    if motor.mrLastMotorObjectRotSpeed ~= nil then
+        mrText = string.format(" | MR: rpmMotor=%.0f ralentiMR=%.0f relaçãoMR=%.1f",
+            num(motor.mrLastMotorObjectRotSpeed) * 30 / math.pi, num(motor.mrMinRot) * 30 / math.pi,
+            num(vehicle.spec_motorized ~= nil and vehicle.spec_motorized.mrLastMinGearRatioSet))
+    end
+    -- embraiagem do ADS, se estiver carregado (avaria 0-1 e patinagem atual)
+    if spec.debugAdsClutch ~= nil then
+        mrText = mrText .. string.format(" | ADS: embraiagem=%.2f patinagem=%.2f", num(spec.debugAdsClutch.value), num(spec.debugAdsClutch.slip))
+    end
+
+    print(string.format("[HandThrottle DEBUG] %s%s | mud=%s emb=%.2f | pedalEntra=%.2f pedalSai=%.2f alvo=%.2f suavizado=%.2f"
+        .. " | física: pedal=%.2f travão=%.2f auto=%s pedalMotor=%.2f"
+        .. " | rpmReal=%.0f rpmJogo=%.0f rpmEmb=%.0f ralenti=%.0f gama=%.0f-%.0f | %.1f km/h | relação=%.1f/%.1f atual=%.1f"
+        .. " | binário=%.0f/%.0f | stall=%.0f afogado=%.0f patinar=%.0f%s",
+        event ~= nil and ("*** " .. event .. " *** ") or "", reason,
+        tostring(motor.gear), num(motor.manualClutchValue),
+        num(axisIn), num(axisOut), num(target), num(vehicle.wheelsUtilSmoothedAcceleratorPedal),
+        num(spec.debugPhysicsAcc), num(spec.debugPhysicsBrake), tostring(spec.debugPhysicsAutoBrake), num(motor.lastAcceleratorPedal),
+        num(HandThrottle.getRealMotorRpm(motor)), num(motor:getLastMotorRpm()), clutchRpm, num(creepRpm), num(minRange), num(maxRange), speed,
+        num(motor.minGearRatio), num(motor.maxGearRatio), num(motor.gearRatio),
+        num(motor.motorAppliedTorque) * 1000, num(motor.motorAvailableTorque) * 1000,
+        num(motor.stallTimer), num(spec.idleCreepStallTimer), num(motor.clutchSlippingTimer), mrText))
 end
 
 
@@ -803,9 +1165,11 @@ function HandThrottle:onUpdate(dt, isActiveForInput, isActiveForInputIgnoreSelec
 
     -- arrasto ao ralenti: vale a configuração de quem conduz (o servidor recebe-a no estado)
     local idleCreepTorque = HandThrottle.getIdleCreepTorqueSetting()
-    if spec.idleCreepTorque ~= idleCreepTorque then
+    local idleCreepClutchCurve = HandThrottle.getIdleCreepClutchCurveSetting()
+    if spec.idleCreepTorque ~= idleCreepTorque or spec.idleCreepClutchCurve ~= idleCreepClutchCurve then
         local state = HandThrottle.copyState(spec)
         state.idleCreepTorque = idleCreepTorque
+        state.idleCreepClutchCurve = idleCreepClutchCurve
         self:setHandThrottleState(state)
     end
 

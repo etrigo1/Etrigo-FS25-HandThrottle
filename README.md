@@ -1,7 +1,7 @@
 [🇵🇹 Ler em Português](README.pt.md) | 🇺🇸 English
 
 # 🚜 Hand Throttle (Etrigo_HandThrottle)
-**Current Version:** 1.7.0.0  |  **Farming Simulator 25**  |  **Multiplayer:** supported
+**Current Version:** 1.7.0.1  |  **Farming Simulator 25**  |  **Multiplayer:** supported
 
 A real hand throttle for every tractor. With a manual gearbox, set the throttle or the RPM and just work the gears; with a CVT, set the speed like the drive lever of modern tractors; and with any gearbox, cap the engine's maximum RPM. It never works together with the cruise control, so both can share the same buttons, and with CVT Addon it drives its hand throttle with buttons.
 
@@ -41,6 +41,8 @@ Like the cruise control and speed limiter of a car, which share the same buttons
 ### Idle creep (manual with clutch)
 With the game's gearbox setting **"manual with clutch"**, a gear engaged and the clutch released (or slipping), the tractor **creeps along at idle without throttle**, like a real tractor. The engine pulls with the torque it has at idle but never revs above idle (downhill it acts as engine brake). Releasing the clutch too fast under load can still stall the engine, as in the base game.
 - Does nothing with the clutch pressed, in neutral, while shifting, braking, with the handbrake, with cruise control, with AI or with nobody driving.
+- The strength builds up with the clutch travel: almost nothing when you just lift it, all of it with the clutch released (tune the curve with `clutchCurve`).
+- With your foot on the throttle the higher of the two wins, like a tractor with a governor: press more than the creep and your foot takes over.
 - The hand throttle wins: % above 0 and RPM mode work as before; with the RPM limit the lower of the two caps applies.
 - On by default; switch it off with `<idleCreep enabled="false"/>` in the settings file. Switches itself off when **More Realistic** is loaded (it does the same).
 
@@ -88,7 +90,8 @@ Created automatically on first start. Edit it with the game closed; missing or i
         <speed    enabled="true" brakeOff="true"  step="1" pedalOffDifference="5"/>
     </modes>
     <general rememberPerVehicle="true" keyRepeatDelay="400" keyRepeatInterval="100"/>
-    <idleCreep enabled="true" torque="1"/>
+    <idleCreep enabled="true" torque="1" clutchCurve="1"/>
+    <debug enabled="false"/>
 </handThrottle>
 ```
 
@@ -103,6 +106,8 @@ Created automatically on first start. Edit it with the game closed; missing or i
 | `keyRepeatDelay` / `keyRepeatInterval` | Held key: ms before repeating / ms between repeats |
 | `idleCreep enabled` | Idle creep on/off (manual with clutch) |
 | `idleCreep torque` | Idle creep strength, 0.1–1 (1 = all the torque the engine has at idle) |
+| `idleCreep clutchCurve` | How the strength builds up as you release the clutch, 0.3–3. `1` = linear (half-way through the travel, half the strength); below 1 it bites earlier (e.g. `0.5`); above 1 it is softer at first and only pulls hard at the end (e.g. `2`) |
+| `debug enabled` | Diagnostic log in the game's `log.txt` (lines starting with `[HandThrottle DEBUG]`), to help find problems. Leave it off for normal play. It can also be switched during the game with the console command `ethtDebug [on\|off]` |
 
 ---
 
@@ -111,6 +116,7 @@ Created automatically on first start. Edit it with the game closed; missing or i
 - km/h mode in reverse needs the manual shuttle (the game's direction change setting); without it, km/h mode is forward only.
 - **Vehicle Inspector**: its cruise control keys are blocked while the hand throttle is on or paused, like the game's cruise control.
 - **CVT Addon**: the % mode controls its hand throttle on CVT vehicles (see above).
+- **Advanced Damage System (ADS)**: with a clutch worn by ADS, idle creep slips instead of stalling; with a failed clutch it does nothing. ADS is in charge of the clutch (this mod only reads it).
 - **FS25_RPMResponsiveSpeeds** also changes RPM behaviour. Both can be loaded, but disable one of them if you want to test the other in isolation.
 - No savegame data is written.
 

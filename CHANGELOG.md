@@ -2,6 +2,19 @@
 
 The versions before 1.3.0.0 were developed and tested locally before the repository existed. Their commits and tags were **reconstructed** from the development history: every change was replayed in order from the very first version, and the result matches the 1.3.0.0 files byte for byte. Only 1.3.0.0 and later have a downloadable release; 1.0.0.0 and 1.0.0.1 do not work in game (see below).
 
+## 1.7.0.1 — 2026-11-06
+- **Idle creep reworked after in-game testing:**
+  - The governor now follows the clutch side speed (wheels × gear ratio) instead of the engine speed, which the game physics keeps at idle. Before, the tractor got too little torque and stalled.
+  - The strength builds up with the clutch travel, so the clutch no longer bites fully at the top of its travel. New setting `clutchCurve` (0.3–3, default 1) tunes how fast it builds up.
+  - The foot pedal and the creep: the higher of the two wins, like a tractor with a governor. No dead zone is needed, so the noise of a pedal at rest no longer switches the creep off.
+  - While the clutch slips, the engine no longer flares to high RPM.
+- **Realistic stalling:** with the clutch (almost) released, if the clutch side stays below half the idle speed for 1 s, the engine stalls, e.g. starting from standstill in a high gear or high range. Wheel jitter no longer resets the count, unlike the game's own check.
+- **Advanced Damage System (ADS) compatibility** (read only, ADS is in charge of the clutch):
+  - With a clutch worn by ADS, the creep slips instead of stalling.
+  - With a failed clutch, the creep does nothing.
+  - Without ADS, nothing changes.
+- **Diagnostic log:** `<debug enabled="false"/>` in the settings file. The console command `ethtDebug [on|off]` switches it on or off without restarting the game.
+
 ## 1.7.0.0 — 2026-11-06
 - **Idle creep** (on by default): with the "manual with clutch" gearbox setting, a gear engaged and the clutch released or slipping, the tractor creeps along at idle without throttle, like a real tractor. The engine pulls with its idle torque but never revs above idle. Not active with the clutch pressed, in neutral, while shifting, braking, with the handbrake, cruise control, AI or nobody driving. The hand throttle modes win over it.
 - New settings `<idleCreep enabled="true" torque="1"/>` in `modSettings/Etrigo_HandThrottle.xml`. Switches itself off when More Realistic is loaded.

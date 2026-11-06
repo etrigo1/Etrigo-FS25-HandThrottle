@@ -52,4 +52,28 @@ function HandThrottleMouseListener:mouseEvent(posX, posY, isDown, isUp, button)
     end
 end
 
+
+-- comando de consola ethtDebug [on|off]: liga/desliga o log de diagnóstico sem reiniciar o jogo.
+-- Registado ao carregar o mapa e retirado ao sair (assim volta a existir ao carregar outro jogo).
+function HandThrottleMouseListener:loadMap()
+    if addConsoleCommand ~= nil then
+        addConsoleCommand("ethtDebug", "Hand throttle: turns the diagnostic log on/off. Usage: ethtDebug [on|off]", "consoleCommandDebug", HandThrottleMouseListener)
+    end
+end
+
+
+function HandThrottleMouseListener:deleteMap()
+    if removeConsoleCommand ~= nil then
+        removeConsoleCommand("ethtDebug")
+    end
+end
+
+
+function HandThrottleMouseListener:consoleCommandDebug(arg)
+    if HandThrottle == nil then
+        return "[HandThrottle] not loaded"
+    end
+    return HandThrottle.consoleCommandDebug(arg)
+end
+
 addModEventListener(HandThrottleMouseListener)

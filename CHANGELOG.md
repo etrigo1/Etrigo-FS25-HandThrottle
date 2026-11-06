@@ -2,6 +2,11 @@
 
 The versions before 1.3.0.0 were developed and tested locally before the repository existed. Their commits and tags were **reconstructed** from the development history: every change was replayed in order from the very first version, and the result matches the 1.3.0.0 files byte for byte. Only 1.3.0.0 and later have a downloadable release; 1.0.0.0 and 1.0.0.1 do not work in game (see below).
 
+## 1.7.0.0 — 2026-11-06
+- **Idle creep** (on by default): with the "manual with clutch" gearbox setting, a gear engaged and the clutch released or slipping, the tractor creeps along at idle without throttle, like a real tractor. The engine pulls with its idle torque but never revs above idle. Not active with the clutch pressed, in neutral, while shifting, braking, with the handbrake, cruise control, AI or nobody driving. The hand throttle modes win over it.
+- New settings `<idleCreep enabled="true" torque="1"/>` in `modSettings/Etrigo_HandThrottle.xml`. Switches itself off when More Realistic is loaded.
+- No new function overrides: it uses only the two the mod already had, both calling the original game function (`updateVehiclePhysics` and `VehicleMotor.getRequiredMotorRpmRange`).
+
 ## 1.6.0.0 — 2026-11-06
 - **CVT Addon support:** on CVT vehicles with [CVT Addon](https://github.com/SbSh-DNA-ModDing/FS25_CVT_Addon_Dev), the **% mode** is now available and controls the CVT Addon hand throttle with the increase/decrease buttons, so no analog throttle lever is needed (e.g. more engine RPM = faster hydraulics on loaders and excavators). Mode cycle there: system off → % → km/h → Limit → system off.
 - Pausing, switching the system off, stopping the engine or leaving the vehicle sets the CVT Addon hand throttle back to 0. With the hand throttle off, the value of an analog lever on the CVT Addon axis is never touched.

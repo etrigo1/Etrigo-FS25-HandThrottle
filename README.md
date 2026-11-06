@@ -1,7 +1,7 @@
 [🇵🇹 Ler em Português](README.pt.md) | 🇺🇸 English
 
 # 🚜 Hand Throttle (Etrigo_HandThrottle)
-**Current Version:** 1.6.0.0  |  **Farming Simulator 25**  |  **Multiplayer:** supported
+**Current Version:** 1.7.0.0  |  **Farming Simulator 25**  |  **Multiplayer:** supported
 
 A real hand throttle for every tractor. With a manual gearbox, set the throttle or the RPM and just work the gears; with a CVT, set the speed like the drive lever of modern tractors; and with any gearbox, cap the engine's maximum RPM. It never works together with the cruise control, so both can share the same buttons, and with CVT Addon it drives its hand throttle with buttons.
 
@@ -37,6 +37,12 @@ Like the cruise control and speed limiter of a car, which share the same buttons
 - Switching a mode on turns the cruise control off. While the hand throttle is on or paused, the cruise control keys are disabled and, if something else switches it on, it is switched off at once.
 - So you can **bind the same buttons** (on/off, increase, decrease) to the cruise control and to the hand throttle: the mode key decides which one they control. Only the mode key must stay on a button of its own.
 - Works with the game's cruise control and with **Vehicle Inspector**.
+
+### Idle creep (manual with clutch)
+With the game's gearbox setting **"manual with clutch"**, a gear engaged and the clutch released (or slipping), the tractor **creeps along at idle without throttle**, like a real tractor. The engine pulls with the torque it has at idle but never revs above idle (downhill it acts as engine brake). Releasing the clutch too fast under load can still stall the engine, as in the base game.
+- Does nothing with the clutch pressed, in neutral, while shifting, braking, with the handbrake, with cruise control, with AI or with nobody driving.
+- The hand throttle wins: % above 0 and RPM mode work as before; with the RPM limit the lower of the two caps applies.
+- On by default; switch it off with `<idleCreep enabled="false"/>` in the settings file. Switches itself off when **More Realistic** is loaded (it does the same).
 
 ### CVT Addon hand throttle with buttons
 [CVT Addon](https://github.com/SbSh-DNA-ModDing/FS25_CVT_Addon_Dev) has its own hand throttle (more engine RPM, e.g. faster hydraulics on loaders and excavators), but only on an analog axis. With CVT Addon installed, the **%** mode is also available on CVT vehicles and drives that hand throttle with the increase/decrease buttons, so no throttle lever is needed.
@@ -82,6 +88,7 @@ Created automatically on first start. Edit it with the game closed; missing or i
         <speed    enabled="true" brakeOff="true"  step="1" pedalOffDifference="5"/>
     </modes>
     <general rememberPerVehicle="true" keyRepeatDelay="400" keyRepeatInterval="100"/>
+    <idleCreep enabled="true" torque="1"/>
 </handThrottle>
 ```
 
@@ -94,6 +101,8 @@ Created automatically on first start. Edit it with the game closed; missing or i
 | `textSize` | HUD text size |
 | `rememberPerVehicle` | Per-tractor memory when leaving/stopping the engine |
 | `keyRepeatDelay` / `keyRepeatInterval` | Held key: ms before repeating / ms between repeats |
+| `idleCreep enabled` | Idle creep on/off (manual with clutch) |
+| `idleCreep torque` | Idle creep strength, 0.1–1 (1 = all the torque the engine has at idle) |
 
 ---
 

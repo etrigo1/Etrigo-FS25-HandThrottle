@@ -1,7 +1,7 @@
 🇵🇹 Português | [🇺🇸 Read in English](README.md)
 
 # 🚜 Acelerador de Mão (Etrigo_HandThrottle)
-**Versão atual:** 1.6.0.0  |  **Farming Simulator 25**  |  **Multijogador:** suportado
+**Versão atual:** 1.7.0.0  |  **Farming Simulator 25**  |  **Multijogador:** suportado
 
 Um acelerador de mão a sério para todos os tratores. Na caixa manual fixas o acelerador ou as RPM e só mexes nas mudanças; num CVT fixas a velocidade como na alavanca de condução dos tratores modernos; e em qualquer caixa podes limitar as RPM máximas do motor. Nunca trabalha ao mesmo tempo que o cruise control, por isso os dois podem partilhar os mesmos botões, e com o CVT Addon controla o acelerador de mão dele com botões.
 
@@ -37,6 +37,12 @@ Como o cruise control e o limitador de velocidade de um carro, que partilham os 
 - Ligar um modo desliga o cruise control. Com o acelerador de mão ligado ou em pausa, as teclas do cruise control ficam desativadas e, se outra coisa o ligar, é desligado logo.
 - Assim podes **pôr os mesmos botões** (ligar/desligar, subir, descer) no cruise control e no acelerador de mão: a tecla de modo decide quem eles controlam. Só a tecla de modo tem de ficar num botão só dela.
 - Funciona com o cruise control do jogo e com o **Vehicle Inspector**.
+
+### Arrasto ao ralenti (manual com embraiagem)
+Com a caixa do jogo em **"manual com embraiagem"**, uma mudança engatada e a embraiagem solta (ou a patinar), o trator **anda devagar ao ralenti sem acelerar**, como um trator real. O motor puxa com a força que tem ao ralenti, mas nunca passa do ralenti (a descer faz de travão-motor). Soltar a embraiagem de repente com carga continua a poder ir abaixo, como no jogo base.
+- Não faz nada com a embraiagem carregada, em ponto morto, a meter a mudança, a travar, com o travão de mão, com o cruise control, com a IA ou sem ninguém a conduzir.
+- O acelerador de mão ganha: o % acima de 0 e o modo RPM funcionam como antes; com o limite de RPM vale o teto mais baixo.
+- Vem ligado; desliga-se com `<idleCreep enabled="false"/>` no ficheiro de configurações. Desliga-se sozinho com o **More Realistic** carregado (que já faz o mesmo).
 
 ### Acelerador de mão do CVT Addon com botões
 O [CVT Addon](https://github.com/SbSh-DNA-ModDing/FS25_CVT_Addon_Dev) tem o seu próprio acelerador de mão (mais rotações, ex.: hidráulica mais rápida em carregadoras e escavadoras), mas só num eixo analógico. Com o CVT Addon instalado, o modo **%** também aparece nos veículos CVT e mexe nesse acelerador de mão com os botões subir/descer, sem precisar de uma alavanca.
@@ -82,6 +88,7 @@ Criado sozinho no primeiro arranque. Edita-se com o jogo fechado; valores em fal
         <speed    enabled="true" brakeOff="true"  step="1" pedalOffDifference="5"/>
     </modes>
     <general rememberPerVehicle="true" keyRepeatDelay="400" keyRepeatInterval="100"/>
+    <idleCreep enabled="true" torque="1"/>
 </handThrottle>
 ```
 
@@ -94,6 +101,8 @@ Criado sozinho no primeiro arranque. Edita-se com o jogo fechado; valores em fal
 | `textSize` | Tamanho da letra do HUD |
 | `rememberPerVehicle` | Memória por trator ao sair/desligar o motor |
 | `keyRepeatDelay` / `keyRepeatInterval` | Tecla carregada: ms até repetir / ms entre repetições |
+| `idleCreep enabled` | Liga/desliga o arrasto ao ralenti (manual com embraiagem) |
+| `idleCreep torque` | Força do arrasto, 0.1–1 (1 = toda a força que o motor tem ao ralenti) |
 
 ---
 

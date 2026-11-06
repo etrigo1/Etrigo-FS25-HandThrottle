@@ -21,6 +21,9 @@
 --            como o cruise control do jogo, mas com memória própria para a frente e para trás).
 --   Limite : as RPM nunca passam do valor definido (o "corte" do motor).
 --
+-- Arrasto ao ralenti (opção, ligada por defeito): na caixa manual com embraiagem, com mudança
+-- engatada e sem acelerador, o trator anda ao ralenti como num trator real.
+--
 -- Tudo o que mexe no motor corre no servidor, em Drivable:updateVehiclePhysics.
 -- O pedal do jogador ganha sempre; travar (axisForward < 0) suspende a mão.
 -- Configurações por jogador em modSettings/Etrigo_HandThrottle.xml.
@@ -83,6 +86,8 @@ HandThrottle.DEFAULT_CONFIG = {
         speed    = { enabled = true, brakeOff = true,  step = 1, pedalOffDifference = 5 },
     },
     general = { rememberPerVehicle = true, keyRepeatDelay = 400, keyRepeatInterval = 100 },
+    -- arrasto ao ralenti: caixa manual com embraiagem, mudança engatada, sem acelerador
+    idleCreep = { enabled = true, torque = 1.0 },
 }
 
 -- estado do HUD: só local (por jogador), não vai para o savegame nem para a rede
@@ -188,6 +193,9 @@ function HandThrottle.loadSettings()
             config.general.keyRepeatDelay = math.floor(readFloat(xmlFile, "handThrottle.general#keyRepeatDelay", config.general.keyRepeatDelay, 0, 5000))
             config.general.keyRepeatInterval = math.floor(readFloat(xmlFile, "handThrottle.general#keyRepeatInterval", config.general.keyRepeatInterval, 16, 5000))
 
+            config.idleCreep.enabled = readBool(xmlFile, "handThrottle.idleCreep#enabled", config.idleCreep.enabled)
+            config.idleCreep.torque = readFloat(xmlFile, "handThrottle.idleCreep#torque", config.idleCreep.torque, 0.1, 1)
+
             delete(xmlFile)
         end
     end
@@ -234,6 +242,9 @@ function HandThrottle.saveSettings()
     setXMLInt(xmlFile, "handThrottle.general#keyRepeatDelay", config.general.keyRepeatDelay)
     setXMLInt(xmlFile, "handThrottle.general#keyRepeatInterval", config.general.keyRepeatInterval)
 
+    setXMLBool(xmlFile, "handThrottle.idleCreep#enabled", config.idleCreep.enabled)
+    setXMLFloat(xmlFile, "handThrottle.idleCreep#torque", config.idleCreep.torque)
+
     saveXMLFile(xmlFile)
     delete(xmlFile)
 end
@@ -242,6 +253,16 @@ end
 function HandThrottle.getConfig()
     HandThrottle.loadSettings()
     return HandThrottle.config
+end
+
+
+-- força do arrasto ao ralenti nas configurações deste jogador: 0 = desligado, 10-100 = %
+function HandThrottle.getIdleCreepTorqueSetting()
+    local idleCreep = HandThrottle.getConfig().idleCreep
+    if not idleCreep.enabled then
+        return 0
+    end
+    return math.clamp(math.floor(idleCreep.torque * 100 + 0.5), 10, 100)
 end
 
 
@@ -304,6 +325,10 @@ function HandThrottle:onLoad(savegame)
     -- modo guardado em pausa (tecla ligar/desligar, sair do trator, desligar o motor)
     -- MODE_OFF = nada guardado. Só dura a sessão de jogo (não vai para o savegame).
     spec.lastMode = HandThrottle.MODE_OFF
+
+    -- arrasto ao ralenti (0 = desligado, 10-100 = força em %). Vem das configurações de quem conduz,
+    -- que o envia no estado; até lá vale a configuração desta máquina.
+    spec.idleCreepTorque = HandThrottle.getIdleCreepTorqueSetting()
 
     -- só no servidor
     spec.pedal = 0
@@ -378,6 +403,7 @@ function HandThrottle.copyState(spec)
         rpmLimit = spec.rpmLimit,
         speedForward = spec.speedForward,
         speedBackward = spec.speedBackward,
+        idleCreepTorque = spec.idleCreepTorque,
     }
 end
 
@@ -390,6 +416,7 @@ function HandThrottle.writeStateToStream(streamId, state)
     streamWriteUInt16(streamId, state.rpmLimit)
     streamWriteUInt16(streamId, math.floor(state.speedForward * 10 + 0.5))
     streamWriteUInt16(streamId, math.floor(state.speedBackward * 10 + 0.5))
+    streamWriteUInt8(streamId, state.idleCreepTorque)
 end
 
 
@@ -402,11 +429,12 @@ function HandThrottle.readStateFromStream(streamId)
     state.rpmLimit = streamReadUInt16(streamId)
     state.speedForward = streamReadUInt16(streamId) / 10
     state.speedBackward = streamReadUInt16(streamId) / 10
+    state.idleCreepTorque = streamReadUInt8(streamId)
     return state
 end
 
 
--- state: tabela com mode, lastMode, percent, rpm, rpmLimit, speedForward, speedBackward
+-- state: tabela com mode, lastMode, percent, rpm, rpmLimit, speedForward, speedBackward, idleCreepTorque
 -- lastMode: modo guardado em pausa (MODE_OFF ou nil = nada guardado)
 function HandThrottle:setHandThrottleState(state, noEventSend)
     local spec = self.spec_handThrottle
@@ -422,6 +450,10 @@ function HandThrottle:setHandThrottleState(state, noEventSend)
     spec.rpmLimit = math.clamp(math.floor((state.rpmLimit or 0) + 0.5), 0, 65535)
     spec.speedForward = math.clamp(round(state.speedForward or 0, 0.1), 0, 6553.5)
     spec.speedBackward = math.clamp(round(state.speedBackward or 0, 0.1), 0, 6553.5)
+    -- não vem em todos os estados (ex.: esquecer): fica o que estava
+    if state.idleCreepTorque ~= nil then
+        spec.idleCreepTorque = math.clamp(math.floor(state.idleCreepTorque + 0.5), 0, 100)
+    end
 
     if spec.mode == HandThrottle.MODE_OFF then
         spec.pedal = 0
@@ -624,9 +656,59 @@ function HandThrottle:updateVehiclePhysics(superFunc, axisForward, axisSide, doH
                 spec.resetController = true
             end
         end
+
+        if spec.idleCreepTorque > 0 then
+            axisForward = HandThrottle.applyIdleCreep(self, spec, axisForward, doHandbrake)
+        end
     end
 
     return superFunc(self, axisForward, axisSide, doHandbrake, dt)
+end
+
+
+-- o More Realistic já faz o arrasto ao ralenti (e substitui a física das rodas): não juntar os dois
+function HandThrottle.getIsMoreRealisticLoaded()
+    return g_modIsLoaded ~= nil and g_modIsLoaded["MoreRealistic"] == true
+end
+
+
+-- Arrasto ao ralenti (como num trator real e como o More Realistic):
+-- caixa manual com embraiagem, mudança engatada, embraiagem solta ou a patinar e sem acelerador.
+-- Dá pedal e põe o teto das rotações no ralenti: o motor puxa com a força que tem ao ralenti
+-- mas nunca passa do ralenti (a descer faz de travão-motor). Ir abaixo fica com a regra do jogo.
+function HandThrottle.applyIdleCreep(vehicle, spec, axisForward, doHandbrake)
+    if axisForward ~= 0 or doHandbrake or not vehicle:getIsMotorStarted() then
+        return axisForward
+    end
+
+    local motor = vehicle:getMotor()
+    local manualClutchMode = VehicleMotor.SHIFT_MODE_MANUAL_CLUTCH
+    if motor == nil or manualClutchMode == nil or motor.gearShiftMode ~= manualClutchMode
+        or (motor.forwardGears == nil and motor.backwardGears == nil) then
+        return axisForward
+    end
+
+    -- ponto morto, embraiagem carregada ou a meter a mudança: não faz nada
+    local isNeutral = motor.gear == 0 or (motor.minGearRatio == 0 and motor.maxGearRatio == 0)
+    if isNeutral or (motor.manualClutchValue or 0) > 0.9 or (motor.gearChangeTimer ~= nil and motor.gearChangeTimer >= 0) then
+        return axisForward
+    end
+
+    -- só com alguém a conduzir: sem IA, sem cruise control, e um trator deixado engatado não foge
+    if (vehicle.getIsAIActive ~= nil and vehicle:getIsAIActive()) or getIsCruiseControlOn(vehicle)
+        or (vehicle.getIsControlled ~= nil and not vehicle:getIsControlled()) then
+        return axisForward
+    end
+
+    if HandThrottle.getIsMoreRealisticLoaded() then
+        return axisForward
+    end
+
+    -- teto: o mínimo que o jogo pede (ralenti, ou as rotações da tomada de força) e o limite, se houver
+    local creepRpm = motor:getRequiredMotorRpmRange()
+    motor.handThrottleRpmLimit = math.min(motor.handThrottleRpmLimit or math.huge, creepRpm)
+
+    return spec.idleCreepTorque / 100
 end
 
 
@@ -717,6 +799,14 @@ function HandThrottle:onUpdate(dt, isActiveForInput, isActiveForInputIgnoreSelec
     local drivableSpec = self.spec_drivable
     if drivableSpec == nil then
         return
+    end
+
+    -- arrasto ao ralenti: vale a configuração de quem conduz (o servidor recebe-a no estado)
+    local idleCreepTorque = HandThrottle.getIdleCreepTorqueSetting()
+    if spec.idleCreepTorque ~= idleCreepTorque then
+        local state = HandThrottle.copyState(spec)
+        state.idleCreepTorque = idleCreepTorque
+        self:setHandThrottleState(state)
     end
 
     local isSystemOn = HandThrottle.getIsSystemOn(spec)

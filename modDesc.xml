@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="no" ?>
 <modDesc descVersion="104">
     <author>Etrigo</author>
-    <version>1.7.0.1</version>
+    <version>1.7.0.2</version>
 
     <title>
         <en>Hand Throttle</en>
@@ -30,7 +30,7 @@ Idle creep (on by default): with the "manual with clutch" gearbox setting, a gea
 
 Compatible with Advanced Damage System (ADS): with a clutch worn by ADS the creep slips, with a failed clutch it does nothing.
 
-The pedal always wins when pressed further. On/off key that keeps the setting, per-tractor memory, movable HUD. Increase/decrease accept keys, buttons or an analog axis. Each mode can be switched off in modSettings/Etrigo_HandThrottle.xml.
+The pedal always wins when pressed further. On/off key that keeps the setting, per-tractor memory, movable HUD. Increase/decrease accept keys, buttons or an analog axis. Each mode can be switched off in modSettings/HandThrottle.xml.
 ]]></en>
         <de><![CDATA[
 Handgas für alle Traktoren.
@@ -72,7 +72,7 @@ Arrasto ao ralenti (ligado por defeito): com a caixa em "manual com embraiagem",
 
 Compatível com o Advanced Damage System (ADS): com a embraiagem gasta pelo ADS o arrasto patina, com a embraiagem avariada não faz nada.
 
-O pedal ganha sempre que carregares mais. Tecla ligar/desligar que guarda o valor, memória por trator, HUD que se pode mover. Subir/descer aceitam teclas, botões ou um eixo analógico. Cada modo pode ser desligado em modSettings/Etrigo_HandThrottle.xml.
+O pedal ganha sempre que carregares mais. Tecla ligar/desligar que guarda o valor, memória por trator, HUD que se pode mover. Subir/descer aceitam teclas, botões ou um eixo analógico. Cada modo pode ser desligado em modSettings/HandThrottle.xml.
 ]]></pt>
     </description>
 
@@ -161,9 +161,9 @@ O pedal ganha sempre que carregares mais. Tecla ligar/desligar que guarda o valo
             <pt>R</pt>
         </text>
         <text name="ht_warning_noModes">
-            <en>Hand throttle: no mode available for this gearbox (see modSettings/Etrigo_HandThrottle.xml)</en>
-            <de>Handgas: kein Modus für dieses Getriebe verfügbar (siehe modSettings/Etrigo_HandThrottle.xml)</de>
-            <pt>Acelerador de mão: nenhum modo disponível para esta caixa (ver modSettings/Etrigo_HandThrottle.xml)</pt>
+            <en>Hand throttle: no mode available for this gearbox (see modSettings/HandThrottle.xml)</en>
+            <de>Handgas: kein Modus für dieses Getriebe verfügbar (siehe modSettings/HandThrottle.xml)</de>
+            <pt>Acelerador de mão: nenhum modo disponível para esta caixa (ver modSettings/HandThrottle.xml)</pt>
         </text>
         <text name="ht_warning_modeUnavailable">
             <en>Hand throttle: this mode is not available with the current gearbox</en>

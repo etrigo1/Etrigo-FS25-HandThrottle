@@ -1,7 +1,7 @@
 [🇵🇹 Ler em Português](README.pt.md) | 🇺🇸 English
 
-# 🚜 Hand Throttle (Etrigo_HandThrottle)
-**Current Version:** 1.7.0.1  |  **Farming Simulator 25**  |  **Multiplayer:** supported
+# 🚜 Hand Throttle (FS25_HandThrottle)
+**Current Version:** 1.7.0.2  |  **Farming Simulator 25**  |  **Multiplayer:** supported
 
 A real hand throttle for every tractor. With a manual gearbox, set the throttle or the RPM and just work the gears; with a CVT, set the speed like the drive lever of modern tractors; and with any gearbox, cap the engine's maximum RPM. It never works together with the cruise control, so both can share the same buttons, and with CVT Addon it drives its hand throttle with buttons.
 
@@ -77,8 +77,8 @@ Increase/decrease accept keys, buttons **or an analog axis**: with an axis, push
 
 ---
 
-## ⚙️ Settings (`modSettings/Etrigo_HandThrottle.xml`)
-Created automatically on first start. Edit it with the game closed; missing or invalid values fall back to the default. Each player has their own.
+## ⚙️ Settings (`modSettings/HandThrottle.xml`)
+Created automatically on first start (an older `Etrigo_HandThrottle.xml` is picked up once). Edit it with the game closed; missing or invalid values fall back to the default. Each player has their own.
 
 ```xml
 <handThrottle>
@@ -121,7 +121,9 @@ Created automatically on first start. Edit it with the game closed; missing or i
 - No savegame data is written.
 
 ## 📦 Installation
-Download `Etrigo_HandThrottle.zip` from the [Releases](../../releases) page and place it in your `Documents/My Games/FarmingSimulator2025/mods` folder. Don't unzip it.
+Download `FS25_HandThrottle.zip` from the [Releases](../../releases) page and place it in your `Documents/My Games/FarmingSimulator2025/mods` folder. Don't unzip it.
+
+> Up to 1.7.0.1 the file was called `Etrigo_HandThrottle.zip`: delete it from the mods folder, so the game doesn't load the mod twice. Your settings are kept.
 
 ## 📜 Changelog
 See [CHANGELOG.md](CHANGELOG.md).

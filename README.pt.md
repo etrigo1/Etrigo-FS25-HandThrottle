@@ -1,7 +1,7 @@
 🇵🇹 Português | [🇺🇸 Read in English](README.md)
 
-# 🚜 Acelerador de Mão (Etrigo_HandThrottle)
-**Versão atual:** 1.7.0.1  |  **Farming Simulator 25**  |  **Multijogador:** suportado
+# 🚜 Acelerador de Mão (FS25_HandThrottle)
+**Versão atual:** 1.7.0.2  |  **Farming Simulator 25**  |  **Multijogador:** suportado
 
 Um acelerador de mão a sério para todos os tratores. Na caixa manual fixas o acelerador ou as RPM e só mexes nas mudanças; num CVT fixas a velocidade como na alavanca de condução dos tratores modernos; e em qualquer caixa podes limitar as RPM máximas do motor. Nunca trabalha ao mesmo tempo que o cruise control, por isso os dois podem partilhar os mesmos botões, e com o CVT Addon controla o acelerador de mão dele com botões.
 
@@ -77,8 +77,8 @@ Subir/descer aceitam teclas, botões **ou um eixo analógico**: com um eixo, emp
 
 ---
 
-## ⚙️ Configurações (`modSettings/Etrigo_HandThrottle.xml`)
-Criado sozinho no primeiro arranque. Edita-se com o jogo fechado; valores em falta ou inválidos voltam ao valor por defeito. Cada jogador tem o seu.
+## ⚙️ Configurações (`modSettings/HandThrottle.xml`)
+Criado sozinho no primeiro arranque (um `Etrigo_HandThrottle.xml` antigo é aproveitado uma vez). Edita-se com o jogo fechado; valores em falta ou inválidos voltam ao valor por defeito. Cada jogador tem o seu.
 
 ```xml
 <handThrottle>
@@ -121,7 +121,9 @@ Criado sozinho no primeiro arranque. Edita-se com o jogo fechado; valores em fal
 - Não grava nada no savegame.
 
 ## 📦 Instalação
-Descarrega o `Etrigo_HandThrottle.zip` na página de [Releases](../../releases) e põe-no na pasta `Documentos/My Games/FarmingSimulator2025/mods`. Não descompactes.
+Descarrega o `FS25_HandThrottle.zip` na página de [Releases](../../releases) e põe-no na pasta `Documentos/My Games/FarmingSimulator2025/mods`. Não descompactes.
+
+> Até à 1.7.0.1 o ficheiro chamava-se `Etrigo_HandThrottle.zip`: apaga-o da pasta mods, para o jogo não carregar o mod duas vezes. As tuas configurações mantêm-se.
 
 ## 📜 Histórico de versões
 Ver [CHANGELOG.md](CHANGELOG.md).

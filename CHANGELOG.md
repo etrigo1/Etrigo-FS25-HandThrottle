@@ -2,6 +2,10 @@
 
 The versions before 1.3.0.0 were developed and tested locally before the repository existed. Their commits and tags were **reconstructed** from the development history: every change was replayed in order from the very first version, and the result matches the 1.3.0.0 files byte for byte. Only 1.3.0.0 and later have a downloadable release; 1.0.0.0 and 1.0.0.1 do not work in game (see below).
 
+## 1.7.0.2 — 2026-11-06
+- The download is now called **`FS25_HandThrottle.zip`** (the usual FS25 mod naming). If you have the old `Etrigo_HandThrottle.zip`, delete it so the mod isn't loaded twice.
+- The settings file is now **`modSettings/HandThrottle.xml`**, the same whatever the zip is called. An existing `Etrigo_HandThrottle.xml` is read once, so your settings are kept. The old file is left untouched.
+
 ## 1.7.0.1 — 2026-11-06
 - **Idle creep reworked after in-game testing:**
   - The governor now follows the clutch side speed (wheels × gear ratio) instead of the engine speed, which the game physics keeps at idle. Before, the tractor got too little torque and stalled.

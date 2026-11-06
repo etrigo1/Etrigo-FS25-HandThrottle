@@ -26,7 +26,7 @@
 --
 -- Tudo o que mexe no motor corre no servidor, em Drivable:updateVehiclePhysics.
 -- O pedal do jogador ganha sempre; travar (axisForward < 0) suspende a mão.
--- Configurações por jogador em modSettings/Etrigo_HandThrottle.xml.
+-- Configurações por jogador em modSettings/HandThrottle.xml.
 --------------------------------------------------------------------------------
 
 HandThrottle = {}
@@ -74,7 +74,9 @@ HandThrottle.VEHICLE_INSPECTOR_ACTIONS = {"VI_SPEEDCONTROL_SPEED1", "VI_SPEEDCON
 HandThrottle.HUD_DEFAULT_X = 0.985
 HandThrottle.HUD_DEFAULT_Y = 0.30
 HandThrottle.HUD_BOX_PADDING = 0.004
-HandThrottle.SETTINGS_FILE = getUserProfileAppPath() .. "modSettings/Etrigo_HandThrottle.xml"
+-- nome do ficheiro fixo (sem "Etrigo_" nem "FS25_"): igual seja qual for o nome do zip
+HandThrottle.SETTINGS_FILE = getUserProfileAppPath() .. "modSettings/HandThrottle.xml"
+HandThrottle.SETTINGS_FILE_OLD = getUserProfileAppPath() .. "modSettings/Etrigo_HandThrottle.xml"
 
 -- valores por defeito do ficheiro de configurações
 HandThrottle.DEFAULT_CONFIG = {
@@ -136,7 +138,7 @@ end
 
 
 --------------------------------------------------------------------------------
--- Configurações (modSettings/Etrigo_HandThrottle.xml, por jogador)
+-- Configurações (modSettings/HandThrottle.xml, por jogador)
 --------------------------------------------------------------------------------
 local function copyTable(source)
     local result = {}
@@ -175,8 +177,15 @@ function HandThrottle.loadSettings()
     local config = copyTable(HandThrottle.DEFAULT_CONFIG)
     HandThrottle.config = config
 
-    if fileExists(HandThrottle.SETTINGS_FILE) then
-        local xmlFile = loadXMLFile("handThrottleSettings", HandThrottle.SETTINGS_FILE)
+    -- até à v1.7.0.1 o ficheiro chamava-se Etrigo_HandThrottle.xml: lê-o uma vez se ainda não houver o novo
+    -- (o saveSettings no fim grava já no novo; o antigo fica como estava)
+    local settingsFile = HandThrottle.SETTINGS_FILE
+    if not fileExists(settingsFile) and fileExists(HandThrottle.SETTINGS_FILE_OLD) then
+        settingsFile = HandThrottle.SETTINGS_FILE_OLD
+    end
+
+    if fileExists(settingsFile) then
+        local xmlFile = loadXMLFile("handThrottleSettings", settingsFile)
         if xmlFile ~= nil and xmlFile ~= 0 then
             config.hud.x = readFloat(xmlFile, "handThrottle.hud#x", config.hud.x, 0, 1)
             config.hud.y = readFloat(xmlFile, "handThrottle.hud#y", config.hud.y, 0, 1)

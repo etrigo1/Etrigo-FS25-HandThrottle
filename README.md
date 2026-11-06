@@ -1,9 +1,9 @@
 [🇵🇹 Ler em Português](README.pt.md) | 🇺🇸 English
 
 # 🚜 Hand Throttle (Etrigo_HandThrottle)
-**Current Version:** 1.4.0.0  |  **Farming Simulator 25**  |  **Multiplayer:** supported
+**Current Version:** 1.6.0.0  |  **Farming Simulator 25**  |  **Multiplayer:** supported
 
-A real hand throttle for every tractor. With a manual gearbox, set the throttle or the RPM and just work the gears; with a CVT, set the speed like the drive lever of modern tractors; and with any gearbox, cap the engine's maximum RPM.
+A real hand throttle for every tractor. With a manual gearbox, set the throttle or the RPM and just work the gears; with a CVT, set the speed like the drive lever of modern tractors; and with any gearbox, cap the engine's maximum RPM. It never works together with the cruise control, so both can share the same buttons, and with CVT Addon it drives its hand throttle with buttons.
 
 ---
 
@@ -100,6 +100,8 @@ Created automatically on first start. Edit it with the game closed; missing or i
 ## 🔧 Compatibility
 - Works on every vehicle type with an engine that can be driven (base game, DLCs and mods), except locomotives.
 - km/h mode in reverse needs the manual shuttle (the game's direction change setting); without it, km/h mode is forward only.
+- **Vehicle Inspector**: its cruise control keys are blocked while the hand throttle is on or paused, like the game's cruise control.
+- **CVT Addon**: the % mode controls its hand throttle on CVT vehicles (see above).
 - **FS25_RPMResponsiveSpeeds** also changes RPM behaviour. Both can be loaded, but disable one of them if you want to test the other in isolation.
 - No savegame data is written.
 

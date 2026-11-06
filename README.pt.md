@@ -1,9 +1,9 @@
 🇵🇹 Português | [🇺🇸 Read in English](README.md)
 
 # 🚜 Acelerador de Mão (Etrigo_HandThrottle)
-**Versão atual:** 1.4.0.0  |  **Farming Simulator 25**  |  **Multijogador:** suportado
+**Versão atual:** 1.6.0.0  |  **Farming Simulator 25**  |  **Multijogador:** suportado
 
-Um acelerador de mão a sério para todos os tratores. Na caixa manual fixas o acelerador ou as RPM e só mexes nas mudanças; num CVT fixas a velocidade como na alavanca de condução dos tratores modernos; e em qualquer caixa podes limitar as RPM máximas do motor.
+Um acelerador de mão a sério para todos os tratores. Na caixa manual fixas o acelerador ou as RPM e só mexes nas mudanças; num CVT fixas a velocidade como na alavanca de condução dos tratores modernos; e em qualquer caixa podes limitar as RPM máximas do motor. Nunca trabalha ao mesmo tempo que o cruise control, por isso os dois podem partilhar os mesmos botões, e com o CVT Addon controla o acelerador de mão dele com botões.
 
 ---
 
@@ -100,6 +100,8 @@ Criado sozinho no primeiro arranque. Edita-se com o jogo fechado; valores em fal
 ## 🔧 Compatibilidade
 - Funciona em todos os tipos de veículo com motor que se conduzem (jogo base, DLCs e mods), exceto locomotivas.
 - Modo km/h em marcha-atrás precisa do inversor manual (definição de mudança de sentido do jogo); sem ele, o modo km/h é só para a frente.
+- **Vehicle Inspector**: as teclas do cruise control dele ficam bloqueadas com o acelerador de mão ligado ou em pausa, tal como as do jogo.
+- **CVT Addon**: o modo % controla o acelerador de mão dele nos veículos CVT (ver acima).
 - O **FS25_RPMResponsiveSpeeds** também mexe nas RPM. Podem estar os dois carregados, mas desativa um deles se quiseres testar o outro isolado.
 - Não grava nada no savegame.
 
